@@ -5,6 +5,50 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
+export type InvitePendingProfileState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const maybeError = error as {
+      message?: unknown;
+      error_description?: unknown;
+      code?: unknown;
+    };
+
+    const message =
+      typeof maybeError.message === "string" && maybeError.message
+        ? maybeError.message
+        : typeof maybeError.error_description === "string" &&
+            maybeError.error_description
+          ? maybeError.error_description
+          : "";
+
+    if (message && maybeError.code) {
+      return `${message} (${String(maybeError.code)})`;
+    }
+
+    if (message) {
+      return message;
+    }
+  }
+
+  try {
+    const serialized = JSON.stringify(error);
+    return serialized && serialized !== "{}"
+      ? serialized
+      : "Supabase did not return a detailed error message.";
+  } catch {
+    return "Unknown error.";
+  }
+}
+
 function optionalNumber(value: FormDataEntryValue | null) {
   const normalized = String(value ?? "").trim();
 
@@ -104,62 +148,77 @@ export async function deletePendingProfile(formData: FormData) {
   revalidatePath("/dashboard/users");
 }
 
-export async function invitePendingProfile(formData: FormData) {
-  await requireActiveAdmin();
+export async function invitePendingProfile(
+  _state: InvitePendingProfileState,
+  formData: FormData,
+): Promise<InvitePendingProfileState> {
+  try {
+    await requireActiveAdmin();
 
-  const id = requiredNumber(formData.get("id"));
-  const supabase = await createClient();
-  const { data: pendingProfile, error: pendingError } = await supabase
-    .from("pending_profiles")
-    .select("email,full_name,buyer_id")
-    .eq("id", id)
-    .single<{
-      email: string;
-      full_name: string | null;
-      buyer_id: number;
-    }>();
+    const id = requiredNumber(formData.get("id"));
+    const supabase = await createClient();
+    const { data: pendingProfile, error: pendingError } = await supabase
+      .from("pending_profiles")
+      .select("email,full_name,buyer_id")
+      .eq("id", id)
+      .single<{
+        email: string;
+        full_name: string | null;
+        buyer_id: number;
+      }>();
 
-  if (pendingError) {
-    throw new Error(pendingError.message);
-  }
+    if (pendingError) {
+      throw new Error(getErrorMessage(pendingError));
+    }
 
-  const supabaseUrl =
-    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl =
+      process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is required on the server to invite users.",
-    );
-  }
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error(
+        "Missing SUPABASE_SERVICE_ROLE_KEY or Supabase URL on the server.",
+      );
+    }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000");
+    const appUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000");
 
-  const admin = createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-
-  const { error } = await admin.auth.admin.inviteUserByEmail(
-    pendingProfile.email,
-    {
-      redirectTo: `${appUrl}/auth/confirm?next=/dashboard`,
-      data: {
-        full_name: pendingProfile.full_name,
-        buyer_id: pendingProfile.buyer_id,
+    const admin = createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
-    },
-  );
+    });
 
-  if (error) {
-    throw new Error(error.message);
+    const { error } = await admin.auth.admin.inviteUserByEmail(
+      pendingProfile.email,
+      {
+        redirectTo: `${appUrl}/auth/confirm?next=/dashboard`,
+        data: {
+          full_name: pendingProfile.full_name,
+          buyer_id: pendingProfile.buyer_id,
+        },
+      },
+    );
+
+    if (error) {
+      throw new Error(getErrorMessage(error));
+    }
+
+    revalidatePath("/dashboard/users");
+
+    return {
+      status: "success",
+      message: `Invitation sent to ${pendingProfile.email}.`,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: getErrorMessage(error),
+    };
   }
-
-  revalidatePath("/dashboard/users");
 }

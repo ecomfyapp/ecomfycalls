@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   deletePendingProfile,
-  invitePendingProfile,
   updateUserProfile,
 } from "./actions";
 import {
@@ -15,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { CopyIdButton } from "@/components/copy-id-button";
+import { PendingInviteButton } from "@/components/pending-invite-button";
 import { SheetTabs } from "@/components/sheet-tabs";
 import { ProfileSelect } from "@/components/profile-select";
 import { SaveRowButton } from "@/components/save-row-button";
@@ -424,15 +424,7 @@ function PendingProfileRow({ profile }: { profile: PendingProfile }) {
         {new Date(profile.created_at).toLocaleDateString()}
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <form action={invitePendingProfile}>
-          <input type="hidden" name="id" value={profile.id} />
-          <button
-            type="submit"
-            className="rounded-md bg-[#173785] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#0f2a6c]"
-          >
-            Invite
-          </button>
-        </form>
+        <PendingInviteButton id={profile.id} />
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
         <form action={deletePendingProfile}>
