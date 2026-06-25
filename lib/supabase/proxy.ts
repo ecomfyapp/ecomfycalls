@@ -6,6 +6,7 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
+  const publicPaths = ["/", "/privacy-policy", "/user-data-deletion"];
 
   // If the env vars are not set, skip proxy check. You can remove this
   // once you setup the project.
@@ -48,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   if (
-    request.nextUrl.pathname !== "/" &&
+    !publicPaths.includes(request.nextUrl.pathname) &&
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth")
