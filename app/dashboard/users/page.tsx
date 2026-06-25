@@ -10,6 +10,7 @@ import {
 import { CheckCircle2, Clock3, Database, ShieldAlert } from "lucide-react";
 import { CopyIdButton } from "@/components/copy-id-button";
 import { SheetTabs } from "@/components/sheet-tabs";
+import { ProfileSelect } from "@/components/profile-select";
 
 type PendingProfile = {
   id: number;
@@ -284,19 +285,21 @@ function UserProfileRow({ profile }: { profile: UserProfile }) {
         </div>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
+        <ProfileSelect
           name="role"
           defaultValue={profile.role}
-          className="w-full"
           form={`user-${profile.id}`}
+          options={["agent", "admin"]}
+          variant="role"
         />
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
+        <ProfileSelect
           name="status"
           defaultValue={profile.status}
-          className="w-full"
           form={`user-${profile.id}`}
+          options={["pending", "active", "banned"]}
+          variant="status"
         />
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
