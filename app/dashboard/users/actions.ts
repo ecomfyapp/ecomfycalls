@@ -21,10 +21,17 @@ function getErrorMessage(error: unknown) {
 
   if (typeof error === "object" && error !== null) {
     const maybeError = error as {
+      name?: unknown;
       message?: unknown;
       error_description?: unknown;
       code?: unknown;
+      status?: unknown;
     };
+    const name = typeof maybeError.name === "string" ? maybeError.name : "";
+    const status =
+      typeof maybeError.status === "number" || typeof maybeError.status === "string"
+        ? String(maybeError.status)
+        : "";
 
     const rawMessage =
       typeof maybeError.message === "string" && maybeError.message
@@ -41,6 +48,10 @@ function getErrorMessage(error: unknown) {
 
     if (message) {
       return message;
+    }
+
+    if (name === "AuthRetryableFetchError" || status === "500") {
+      return "Supabase Auth returned a 500 while sending the invite. Check Auth SMTP/email settings and Auth URL Configuration in Supabase.";
     }
   }
 
@@ -80,6 +91,84 @@ async function requireActiveAdmin() {
 
   if (!user || profile?.role !== "admin" || profile.status !== "active") {
     throw new Error("Only active admins can perform this action.");
+  }
+}
+
+function normalizeEmail(value: FormDataEntryValue | string | null) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function createSupabaseAuthAdmin() {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      "Missing SUPABASE_SERVICE_ROLE_KEY or Supabase URL on the server.",
+    );
+  }
+
+  return createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+async function ensureEmailCanBeInvited(email: string) {
+  if (!email || !isValidEmail(email)) {
+    throw new Error("Enter a valid email address.");
+  }
+
+  const supabase = await createClient();
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from("user_profiles")
+    .select("id,email")
+    .ilike("email", email)
+    .maybeSingle<{ id: string; email: string | null }>();
+
+  if (existingProfileError) {
+    throw new Error(getErrorMessage(existingProfileError));
+  }
+
+  if (existingProfile) {
+    throw new Error("This email already exists in Active Users.");
+  }
+
+  const admin = await createSupabaseAuthAdmin();
+  const { data: authUsers, error: listUsersError } =
+    await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+
+  if (listUsersError) {
+    throw new Error(getErrorMessage(listUsersError));
+  }
+
+  const authUserExists = authUsers.users.some(
+    (current) => current.email?.toLowerCase() === email,
+  );
+
+  if (authUserExists) {
+    throw new Error("This email already exists in Supabase Auth.");
+  }
+
+  return admin;
+}
+
+async function sendInviteEmail(email: string) {
+  const admin = await ensureEmailCanBeInvited(email);
+  const { error } = await admin.auth.admin.inviteUserByEmail(email);
+
+  if (error) {
+    throw new Error(getErrorMessage(error));
   }
 }
 
@@ -176,67 +265,36 @@ export async function invitePendingProfile(
       throw new Error(getErrorMessage(pendingError));
     }
 
-    const { data: existingProfile, error: existingProfileError } =
-      await supabase
-        .from("user_profiles")
-        .select("id,email")
-        .ilike("email", pendingProfile.email)
-        .maybeSingle<{ id: string; email: string | null }>();
-
-    if (existingProfileError) {
-      throw new Error(getErrorMessage(existingProfileError));
-    }
-
-    if (existingProfile) {
-      return {
-        status: "error",
-        message: "This email already exists in Active Users.",
-      };
-    }
-
-    const supabaseUrl =
-      process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      throw new Error(
-        "Missing SUPABASE_SERVICE_ROLE_KEY or Supabase URL on the server.",
-      );
-    }
-
-    const appUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000");
-
-    const admin = createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    });
-
-    const { error } = await admin.auth.admin.inviteUserByEmail(
-      pendingProfile.email,
-      {
-        redirectTo: `${appUrl}/auth/confirm?next=/dashboard`,
-        data: {
-          full_name: pendingProfile.full_name,
-          buyer_id: pendingProfile.buyer_id,
-        },
-      },
-    );
-
-    if (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    await sendInviteEmail(normalizeEmail(pendingProfile.email));
 
     revalidatePath("/dashboard/users");
 
     return {
       status: "success",
       message: `Invitation sent to ${pendingProfile.email}.`,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+export async function inviteUserByEmail(
+  _state: InvitePendingProfileState,
+  formData: FormData,
+): Promise<InvitePendingProfileState> {
+  const email = normalizeEmail(formData.get("email"));
+
+  try {
+    await requireActiveAdmin();
+    await sendInviteEmail(email);
+    revalidatePath("/dashboard/users");
+
+    return {
+      status: "success",
+      message: `Invitation sent to ${email}.`,
     };
   } catch (error) {
     return {

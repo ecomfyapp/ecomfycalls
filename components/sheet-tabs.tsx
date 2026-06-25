@@ -1,5 +1,6 @@
 "use client";
 
+import { InviteUserDialog } from "@/components/invite-user-dialog";
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
@@ -20,6 +21,7 @@ export function SheetTabs({
   emailQuery = "",
 }: SheetTabsProps) {
   const [activeSheet, setActiveSheet] = useState<"users" | "pending">("users");
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [searchValue, setSearchValue] = useState(emailQuery);
   const pathname = usePathname();
   const router = useRouter();
@@ -59,7 +61,8 @@ export function SheetTabs({
   }, [searchValue, updateEmailSearch]);
 
   return (
-    <section className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[8px] border border-[#d8e2f0] bg-white shadow-sm">
+    <>
+      <section className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[8px] border border-[#d8e2f0] bg-white shadow-sm">
       <div className="shrink-0 border-b border-[#d8e2f0] px-5 py-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -91,7 +94,7 @@ export function SheetTabs({
             </button>
             <button
               type="button"
-              onClick={() => setActiveSheet("pending")}
+              onClick={() => setIsInviteDialogOpen(true)}
               className="h-9 rounded-md bg-[#173785] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#0f2a6c]"
             >
               Invitar usuario
@@ -134,6 +137,11 @@ export function SheetTabs({
       <div className="min-h-0 flex-1 overflow-hidden">
         {activeSheet === "users" ? userProfiles : pendingProfiles}
       </div>
-    </section>
+      </section>
+
+      {isInviteDialogOpen ? (
+        <InviteUserDialog onClose={() => setIsInviteDialogOpen(false)} />
+      ) : null}
+    </>
   );
 }
