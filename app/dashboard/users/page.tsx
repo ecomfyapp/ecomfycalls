@@ -16,8 +16,7 @@ type PendingProfile = {
   id: number;
   created_at: string;
   updated_at: string;
-  first_name: string | null;
-  last_name: string | null;
+  full_name: string | null;
   email: string;
   buyer_id: number;
   account_status: string | null;
@@ -51,7 +50,7 @@ async function UsersContent() {
       supabase
         .from("pending_profiles")
         .select(
-          "id,created_at,updated_at,first_name,last_name,email,buyer_id,account_status",
+          "id,created_at,updated_at,full_name,email,buyer_id,account_status",
         )
         .order("created_at", { ascending: false })
         .returns<PendingProfile[]>(),
@@ -159,9 +158,8 @@ async function UsersContent() {
             <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm">
               <colgroup>
                 <col style={{ width: "6%" }} />
-                <col style={{ width: "22%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
+                <col style={{ width: "26%" }} />
+                <col style={{ width: "20%" }} />
                 <col style={{ width: "11%" }} />
                 <col style={{ width: "14%" }} />
                 <col style={{ width: "10%" }} />
@@ -172,8 +170,7 @@ async function UsersContent() {
                   {[
                     "ID",
                     "Email",
-                    "First",
-                    "Last",
+                    "Full name",
                     "Buyer ID",
                     "Account status",
                     "Created",
@@ -381,15 +378,8 @@ function PendingProfileRow({ profile }: { profile: PendingProfile }) {
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
         <TableInput
-          name="first_name"
-          defaultValue={profile.first_name}
-          form={`pending-${profile.id}`}
-        />
-      </td>
-      <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
-          name="last_name"
-          defaultValue={profile.last_name}
+          name="full_name"
+          defaultValue={profile.full_name}
           form={`pending-${profile.id}`}
         />
       </td>

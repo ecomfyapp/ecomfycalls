@@ -63,8 +63,7 @@ export async function updatePendingProfile(formData: FormData) {
   const { error } = await supabase
     .from("pending_profiles")
     .update({
-      first_name: String(formData.get("first_name") ?? "").trim() || null,
-      last_name: String(formData.get("last_name") ?? "").trim() || null,
+      full_name: String(formData.get("full_name") ?? "").trim() || null,
       email: String(formData.get("email") ?? "").trim(),
       buyer_id: requiredNumber(formData.get("buyer_id")),
       account_status:

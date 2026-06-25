@@ -1,7 +1,9 @@
-import { LogoutButton } from "@/components/logout-button";
+import { SidebarAccountCard } from "@/components/sidebar-account-card";
+import { getCurrentUserProfile } from "@/lib/user-profile";
 import { BarChart3, Clock3, LayoutDashboard, Settings, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -10,7 +12,7 @@ const navItems = [
   { label: "Settings", href: "/dashboard", icon: Settings },
 ];
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -31,7 +33,9 @@ export default function DashboardLayout({
               />
             </Link>
             <div className="lg:hidden">
-              <LogoutButton />
+              <Suspense fallback={<SidebarAccountSkeleton />}>
+                <SidebarAccount />
+              </Suspense>
             </div>
           </div>
 
@@ -63,7 +67,9 @@ export default function DashboardLayout({
           </div>
 
           <div className="mt-auto hidden lg:block">
-            <LogoutButton />
+            <Suspense fallback={<SidebarAccountSkeleton />}>
+              <SidebarAccount />
+            </Suspense>
           </div>
         </aside>
 
@@ -72,5 +78,23 @@ export default function DashboardLayout({
         </section>
       </div>
     </main>
+  );
+}
+
+async function SidebarAccount() {
+  const { profile } = await getCurrentUserProfile();
+
+  return <SidebarAccountCard profile={profile} />;
+}
+
+function SidebarAccountSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
+      <div className="h-10 w-10 animate-pulse rounded-full bg-[#d8e2f0]" />
+      <div className="min-w-0 flex-1">
+        <div className="h-4 w-24 animate-pulse rounded bg-[#d8e2f0]" />
+        <div className="mt-2 h-3 w-14 animate-pulse rounded bg-[#e8eef8]" />
+      </div>
+    </div>
   );
 }

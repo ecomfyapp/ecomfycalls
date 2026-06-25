@@ -12,6 +12,7 @@
 - Ejecutar `supabase/sql/001-user-profiles.sql` en Supabase.
 - Si aparece recursion de RLS, ejecutar `supabase/sql/002-fix-user-profile-rls-admin-policies.sql`.
 - Para manejar pending externos y match por email, revisar/ejecutar `supabase/sql/004-pending-profiles-admin-and-email-match.sql`.
+- Pending profiles ahora usa `full_name`; ver `supabase/sql/005-pending-profiles-full-name.sql`.
 - Traer schema actual de Supabase despues de ejecutar el SQL.
 - Definir primeras tablas de negocio.
 - Crear UI administrativa para aprobar usuarios.
