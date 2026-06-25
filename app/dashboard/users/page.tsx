@@ -29,7 +29,21 @@ type PendingProfile = {
   account_status: string | null;
 };
 
-async function UsersContent() {
+function normalizeEmailQuery(value: string | string[] | undefined) {
+  return (Array.isArray(value) ? value[0] : value ?? "").trim().toLowerCase();
+}
+
+function emailMatches(email: string | null, query: string) {
+  return !query || String(email ?? "").toLowerCase().includes(query);
+}
+
+async function UsersContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ email?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const emailQuery = normalizeEmailQuery(params.email);
   const { user, profile } = await getCurrentUserProfile();
 
   if (!user) {
@@ -67,6 +81,12 @@ async function UsersContent() {
     userProfiles?.filter((current) => current.status === "active").length ?? 0;
   const pendingCount =
     userProfiles?.filter((current) => current.status === "pending").length ?? 0;
+  const filteredUserProfiles = (userProfiles ?? []).filter((current) =>
+    emailMatches(current.email, emailQuery),
+  );
+  const filteredPendingProfiles = (pendingProfiles ?? []).filter((current) =>
+    emailMatches(current.email, emailQuery),
+  );
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col overflow-hidden">
@@ -110,8 +130,9 @@ async function UsersContent() {
       </div>
 
       <SheetTabs
-        userCount={userProfiles?.length ?? 0}
-        pendingCount={pendingProfiles?.length ?? 0}
+        userCount={filteredUserProfiles.length}
+        pendingCount={filteredPendingProfiles.length}
+        emailQuery={emailQuery}
         userProfiles={
           <div className="h-full overflow-auto">
             <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm">
@@ -151,7 +172,7 @@ async function UsersContent() {
                 </tr>
               </thead>
               <tbody>
-                {(userProfiles ?? []).map((current) => (
+                {filteredUserProfiles.map((current) => (
                   <tr key={current.id} className="align-middle">
                     <UserProfileRow profile={current} />
                   </tr>
@@ -195,7 +216,7 @@ async function UsersContent() {
                 </tr>
               </thead>
               <tbody>
-                {(pendingProfiles ?? []).map((pending) => (
+                {filteredPendingProfiles.map((pending) => (
                   <tr key={pending.id} className="align-middle">
                     <PendingProfileRow profile={pending} />
                   </tr>
@@ -429,12 +450,16 @@ function PendingProfileRow({ profile }: { profile: PendingProfile }) {
   );
 }
 
-export default function UsersPage() {
+export default function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ email?: string | string[] }>;
+}) {
   return (
     <Suspense
       fallback={<UsersSkeleton />}
     >
-      <UsersContent />
+      <UsersContent searchParams={searchParams} />
     </Suspense>
   );
 }
