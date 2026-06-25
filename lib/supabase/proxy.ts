@@ -6,7 +6,12 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
-  const publicPaths = ["/", "/privacy-policy", "/user-data-deletion"];
+  const publicPaths = [
+    "/",
+    "/privacy-policy",
+    "/terms-of-service",
+    "/user-data-deletion",
+  ];
 
   // If the env vars are not set, skip proxy check. You can remove this
   // once you setup the project.

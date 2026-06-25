@@ -335,6 +335,9 @@ export default function Home() {
             <Link href="/privacy-policy" className="hover:text-[#0b1020] dark:hover:text-white">
               Privacy Policy
             </Link>
+            <Link href="/terms-of-service" className="hover:text-[#0b1020] dark:hover:text-white">
+              Terms
+            </Link>
             <Link href="/user-data-deletion" className="hover:text-[#0b1020] dark:hover:text-white">
               Data Deletion
             </Link>
