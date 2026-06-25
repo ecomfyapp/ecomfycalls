@@ -10,9 +10,10 @@
 ## Pendientes
 
 - Ejecutar `supabase/sql/001-user-profiles.sql` en Supabase.
+- Si aparece recursion de RLS, ejecutar `supabase/sql/002-fix-user-profile-rls-admin-policies.sql`.
 - Traer schema actual de Supabase despues de ejecutar el SQL.
 - Definir primeras tablas de negocio.
-- Crear policies RLS administrativas para aprobar usuarios.
+- Crear UI administrativa para aprobar usuarios.
 
 ## Modelo de acceso inicial
 
