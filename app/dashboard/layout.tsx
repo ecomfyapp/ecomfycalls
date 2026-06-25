@@ -1,0 +1,76 @@
+import { LogoutButton } from "@/components/logout-button";
+import { BarChart3, Clock3, LayoutDashboard, Settings, Users } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+
+const navItems = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Calls", href: "/dashboard", icon: BarChart3 },
+  { label: "Users", href: "/dashboard", icon: Users },
+  { label: "Settings", href: "/dashboard", icon: Settings },
+];
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <main className="min-h-screen bg-[#f6f9ff] text-[#0b1020]">
+      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
+        <aside className="relative border-b border-[#d8e2f0] bg-white px-4 py-4 lg:border-b-0 lg:border-r">
+          <div className="flex items-center justify-between gap-4 lg:block">
+            <Link href="/dashboard" className="block">
+              <Image
+                src="/images/Ecomfy-Lead-Logo.png"
+                alt="Ecomfy Lead"
+                width={210}
+                height={50}
+                priority
+                className="h-auto w-[170px]"
+              />
+            </Link>
+            <div className="lg:hidden">
+              <LogoutButton />
+            </div>
+          </div>
+
+          <nav className="mt-8 hidden space-y-1 lg:block">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[#4b5567] hover:bg-[#eef5ff] hover:text-[#173785]"
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-8 hidden rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-4 lg:block">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#173785]">
+              <Clock3 className="h-4 w-4" />
+              Approval required
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[#647084]">
+              New accounts need approval before accessing live call campaigns.
+            </p>
+          </div>
+
+          <div className="absolute bottom-4 hidden lg:block">
+            <LogoutButton />
+          </div>
+        </aside>
+
+        <section className="min-w-0 px-5 py-6 lg:px-8 lg:py-8">
+          {children}
+        </section>
+      </div>
+    </main>
+  );
+}
