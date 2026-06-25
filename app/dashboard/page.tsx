@@ -1,12 +1,45 @@
-import { getCurrentUserProfile } from "@/lib/user-profile";
-import { BadgeCheck, PhoneCall, TrendingUp, Users } from "lucide-react";
+import { getCurrentUserProfile, type UserProfile } from "@/lib/user-profile";
+import {
+  BadgeCheck,
+  CalendarClock,
+  CircleDollarSign,
+  ClipboardCheck,
+  PhoneCall,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-const metrics = [
+const agentMetrics = [
   { label: "Available calls", value: "0", icon: PhoneCall },
   { label: "Active campaigns", value: "0", icon: TrendingUp },
-  { label: "Team members", value: "1", icon: Users },
+  { label: "Account balance", value: "$0", icon: CircleDollarSign },
+];
+
+const agentSteps = [
+  {
+    title: "Complete your buying profile",
+    text: "Tell us which insurance verticals, states, hours and daily volume you want.",
+    icon: ClipboardCheck,
+  },
+  {
+    title: "Fund your account",
+    text: "Add budget before launching campaigns. Billing controls will live here.",
+    icon: CircleDollarSign,
+  },
+  {
+    title: "Receive live transfers",
+    text: "Once campaigns are active, calls will connect to the phone numbers you configure.",
+    icon: PhoneCall,
+  },
+];
+
+const adminMetrics = [
+  { label: "Pending approvals", value: "0", icon: Users },
+  { label: "Active agents", value: "0", icon: ShieldCheck },
+  { label: "Live campaigns", value: "0", icon: TrendingUp },
 ];
 
 async function DashboardContent() {
@@ -28,26 +61,55 @@ async function DashboardContent() {
     redirect("/dashboard/access-restricted");
   }
 
+  if (profile.role === "admin") {
+    return <AdminDashboard profile={profile} error={error} />;
+  }
+
+  return <AgentDashboard profile={profile} error={error} />;
+}
+
+function AgentDashboard({
+  profile,
+  error,
+}: {
+  profile: UserProfile;
+  error: string | null;
+}) {
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
+      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+        <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#bfe8d8] bg-[#effdf7] px-3 py-1 text-sm font-medium text-[#047857]">
             <BadgeCheck className="h-4 w-4" />
-            Active account
+            Agent account active
           </div>
-          <h1 className="mt-4 text-3xl font-semibold tracking-normal md:text-4xl">
-            Welcome to your dashboard
+          <h1 className="mt-5 text-3xl font-semibold tracking-normal md:text-4xl">
+            Buy high-intent insurance calls
           </h1>
-          <p className="mt-2 text-[#647084]">
-            Your account is approved. Campaign tools and call buying flows will
-            live here.
+          <p className="mt-3 max-w-2xl leading-7 text-[#647084]">
+            Your agent workspace is ready. The next step is configuring where,
+            when and what type of calls you want EcomfyCalls to deliver.
           </p>
-        </div>
+        </section>
+
+        <aside className="rounded-[8px] border border-[#d8e2f0] bg-[#173785] p-6 text-white shadow-sm">
+          <p className="text-sm font-medium text-white/70">Account status</p>
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/12">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xl font-semibold capitalize">
+                {profile.status}
+              </p>
+              <p className="text-sm text-white/65">Role: {profile.role}</p>
+            </div>
+          </div>
+        </aside>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {metrics.map((metric) => {
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        {agentMetrics.map((metric) => {
           const Icon = metric.icon;
 
           return (
@@ -67,28 +129,140 @@ async function DashboardContent() {
         })}
       </div>
 
-      <div className="mt-8 rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold">Account context</h2>
-        <dl className="mt-5 grid gap-4 text-sm md:grid-cols-3">
-          <div>
-            <dt className="text-[#647084]">UID</dt>
-            <dd className="mt-1 break-all font-mono text-xs">{profile.id}</dd>
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
+        <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">Launch checklist</h2>
+              <p className="mt-1 text-sm text-[#647084]">
+                These are the pieces we need before calls can start flowing.
+              </p>
+            </div>
           </div>
-          <div>
-            <dt className="text-[#647084]">Role</dt>
-            <dd className="mt-1 font-semibold">{profile.role}</dd>
+
+          <div className="mt-6 space-y-4">
+            {agentSteps.map((step) => {
+              const Icon = step.icon;
+
+              return (
+                <div
+                  key={step.title}
+                  className="flex gap-4 rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#eef5ff] text-[#173785]">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{step.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-[#647084]">
+                      {step.text}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div>
-            <dt className="text-[#647084]">Status</dt>
-            <dd className="mt-1 font-semibold">{profile.status}</dd>
+        </section>
+
+        <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2 text-[#173785]">
+            <CalendarClock className="h-5 w-5" />
+            <h2 className="text-xl font-semibold text-[#0b1020]">
+              Call schedule
+            </h2>
           </div>
-        </dl>
-        {error ? (
-          <p className="mt-4 text-sm text-red-600">
-            Profile warning: {error}
+          <p className="mt-3 text-sm leading-6 text-[#647084]">
+            No campaign schedule has been configured yet. This panel will show
+            delivery hours, states and daily caps for the agent.
           </p>
-        ) : null}
+          <div className="mt-5 rounded-md border border-dashed border-[#b9c8dd] bg-[#f8fbff] p-4 text-sm text-[#647084]">
+            Waiting for campaign setup
+          </div>
+        </section>
       </div>
+
+      <ProfileDebug profile={profile} error={error} />
+    </div>
+  );
+}
+
+function AdminDashboard({
+  profile,
+  error,
+}: {
+  profile: UserProfile;
+  error: string | null;
+}) {
+  return (
+    <div className="mx-auto w-full max-w-6xl">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#bfe8d8] bg-[#effdf7] px-3 py-1 text-sm font-medium text-[#047857]">
+            <BadgeCheck className="h-4 w-4" />
+            Admin account active
+          </div>
+          <h1 className="mt-4 text-3xl font-semibold tracking-normal md:text-4xl">
+            Admin workspace
+          </h1>
+          <p className="mt-2 text-[#647084]">
+            Review pending agents, manage roles and prepare campaign operations.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {adminMetrics.map((metric) => {
+          const Icon = metric.icon;
+
+          return (
+            <div
+              key={metric.label}
+              className="rounded-[8px] border border-[#d8e2f0] bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-[#647084]">
+                  {metric.label}
+                </p>
+                <Icon className="h-5 w-5 text-[#173785]" />
+              </div>
+              <p className="mt-4 text-3xl font-semibold">{metric.value}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <ProfileDebug profile={profile} error={error} />
+    </div>
+  );
+}
+
+function ProfileDebug({
+  profile,
+  error,
+}: {
+  profile: UserProfile;
+  error: string | null;
+}) {
+  return (
+    <div className="mt-6 rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-semibold">Account context</h2>
+      <dl className="mt-5 grid gap-4 text-sm md:grid-cols-3">
+        <div>
+          <dt className="text-[#647084]">UID</dt>
+          <dd className="mt-1 break-all font-mono text-xs">{profile.id}</dd>
+        </div>
+        <div>
+          <dt className="text-[#647084]">Role</dt>
+          <dd className="mt-1 font-semibold">{profile.role}</dd>
+        </div>
+        <div>
+          <dt className="text-[#647084]">Status</dt>
+          <dd className="mt-1 font-semibold">{profile.status}</dd>
+        </div>
+      </dl>
+      {error ? (
+        <p className="mt-4 text-sm text-red-600">Profile warning: {error}</p>
+      ) : null}
     </div>
   );
 }

@@ -4,8 +4,15 @@ export type UserProfile = {
   id: string;
   email: string | null;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  buyer_id: number | null;
+  balance: number;
+  ppc_status: boolean;
   role: string;
   status: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export async function getCurrentUserProfile() {
@@ -31,7 +38,9 @@ export async function getCurrentUserProfile() {
 
   const { data: profile, error } = await supabase
     .from("user_profiles")
-    .select("id,email,full_name,role,status")
+    .select(
+      "id,email,full_name,first_name,last_name,buyer_id,balance,ppc_status,role,status,created_at,updated_at",
+    )
     .eq("id", user.id)
     .maybeSingle<UserProfile>();
 
