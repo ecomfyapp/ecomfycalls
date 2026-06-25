@@ -165,7 +165,14 @@ async function ensureEmailCanBeInvited(email: string) {
 
 async function sendInviteEmail(email: string) {
   const admin = await ensureEmailCanBeInvited(email);
-  const { error } = await admin.auth.admin.inviteUserByEmail(email);
+  const appUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
+  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${appUrl}/auth/update-password`,
+  });
 
   if (error) {
     throw new Error(getErrorMessage(error));
