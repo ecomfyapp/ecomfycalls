@@ -11,6 +11,7 @@ import { CheckCircle2, Clock3, Database, ShieldAlert } from "lucide-react";
 import { CopyIdButton } from "@/components/copy-id-button";
 import { SheetTabs } from "@/components/sheet-tabs";
 import { ProfileSelect } from "@/components/profile-select";
+import { SaveRowButton } from "@/components/save-row-button";
 
 type PendingProfile = {
   id: number;
@@ -330,13 +331,7 @@ function UserProfileRow({ profile }: { profile: UserProfile }) {
         </label>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <button
-          type="submit"
-          form={`user-${profile.id}`}
-          className="rounded-md bg-[#173785] px-2.5 py-1.5 text-sm font-semibold text-white hover:bg-[#0f2a6c]"
-        >
-          Save
-        </button>
+        <SaveRowButton form={`user-${profile.id}`} />
       </td>
       <td className="whitespace-nowrap border-b border-[#eef2f7] px-3 py-2 text-xs text-[#647084]">
         <span className="block">
@@ -405,13 +400,7 @@ function PendingProfileRow({ profile }: { profile: PendingProfile }) {
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
         <div className="flex flex-wrap gap-2">
-          <button
-            type="submit"
-            form={`pending-${profile.id}`}
-            className="rounded-md bg-[#173785] px-2.5 py-1.5 text-sm font-semibold text-white hover:bg-[#0f2a6c]"
-          >
-            Save
-          </button>
+          <SaveRowButton form={`pending-${profile.id}`} />
           <form action={deletePendingProfile}>
             <input type="hidden" name="id" value={profile.id} />
             <button
