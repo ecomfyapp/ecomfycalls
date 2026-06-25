@@ -332,6 +332,12 @@ export default function Home() {
             <Link href="/auth/sign-up" className="hover:text-[#0b1020] dark:hover:text-white">
               Create account
             </Link>
+            <Link href="/privacy-policy" className="hover:text-[#0b1020] dark:hover:text-white">
+              Privacy Policy
+            </Link>
+            <Link href="/user-data-deletion" className="hover:text-[#0b1020] dark:hover:text-white">
+              Data Deletion
+            </Link>
           </div>
         </div>
       </footer>
