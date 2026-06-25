@@ -20,7 +20,7 @@ export function SheetTabs({
   return (
     <section className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[8px] border border-[#d8e2f0] bg-white shadow-sm">
       <div className="shrink-0 border-b border-[#d8e2f0] px-5 py-4">
-        <h2 className="text-xl font-semibold">User profiles</h2>
+        <h2 className="text-xl font-semibold">Active Users</h2>
         <p className="mt-1 text-sm text-[#647084]">
           Authenticated users and imported pending profiles. Identity fields are
           read-only; admins can edit operational access fields.
@@ -36,7 +36,7 @@ export function SheetTabs({
                 : "border-transparent bg-[#f1f5fb] text-[#647084] hover:text-[#173785]"
             }`}
           >
-            User profiles
+            Active Users
             <span className="ml-2 rounded-full bg-[#e8eef8] px-2 py-0.5 text-xs">
               {userCount}
             </span>
@@ -50,7 +50,7 @@ export function SheetTabs({
                 : "border-transparent bg-[#f1f5fb] text-[#647084] hover:text-[#173785]"
             }`}
           >
-            Pending profiles
+            Pending Users
             <span className="ml-2 rounded-full bg-[#e8eef8] px-2 py-0.5 text-xs">
               {pendingCount}
             </span>

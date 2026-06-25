@@ -3,9 +3,15 @@
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 
-export function CopyIdButton({ value }: { value: string }) {
+export function CopyIdButton({
+  value,
+  previewLength = 5,
+}: {
+  value: string;
+  previewLength?: number;
+}) {
   const [copied, setCopied] = useState(false);
-  const preview = value.slice(0, 5);
+  const preview = value.slice(0, previewLength);
 
   const copy = async () => {
     await navigator.clipboard.writeText(value);

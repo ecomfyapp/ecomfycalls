@@ -1,13 +1,23 @@
 import { SidebarAccountCard } from "@/components/sidebar-account-card";
 import { getCurrentUserProfile } from "@/lib/user-profile";
-import { BarChart3, Clock3, LayoutDashboard, Settings, Users } from "lucide-react";
+import {
+  Clock3,
+  LayoutDashboard,
+  Phone,
+  Settings,
+  Users,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Calls", href: "/dashboard", icon: BarChart3 },
+  { label: "Calls", href: "/dashboard/calls", icon: Phone },
+  { label: "Leads", href: "/dashboard/leads", icon: UserRound },
+  { label: "Wallet", href: "/dashboard/wallet", icon: Wallet, agentOnly: true },
   { label: "Users", href: "/dashboard/users", icon: Users },
   { label: "Settings", href: "/dashboard", icon: Settings },
 ];
@@ -39,22 +49,9 @@ export default async function DashboardLayout({
             </div>
           </div>
 
-          <nav className="mt-8 hidden space-y-1 lg:block">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[#4b5567] hover:bg-[#eef5ff] hover:text-[#173785]"
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <Suspense fallback={<SidebarNavSkeleton />}>
+            <SidebarNav />
+          </Suspense>
 
           <div className="mt-8 hidden rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-4 lg:block">
             <div className="flex items-center gap-2 text-sm font-semibold text-[#173785]">
@@ -87,6 +84,32 @@ async function SidebarAccount() {
   return <SidebarAccountCard profile={profile} />;
 }
 
+async function SidebarNav() {
+  const { profile } = await getCurrentUserProfile();
+  const visibleItems = navItems.filter(
+    (item) => !item.agentOnly || profile?.role === "agent",
+  );
+
+  return (
+    <nav className="mt-8 hidden space-y-1 lg:block">
+      {visibleItems.map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[#4b5567] hover:bg-[#eef5ff] hover:text-[#173785]"
+          >
+            <Icon className="h-4 w-4" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 function SidebarAccountSkeleton() {
   return (
     <div className="flex items-center gap-3 rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
@@ -96,5 +119,15 @@ function SidebarAccountSkeleton() {
         <div className="mt-2 h-3 w-14 animate-pulse rounded bg-[#e8eef8]" />
       </div>
     </div>
+  );
+}
+
+function SidebarNavSkeleton() {
+  return (
+    <nav className="mt-8 hidden space-y-2 lg:block">
+      {[0, 1, 2, 3].map((item) => (
+        <div key={item} className="h-9 animate-pulse rounded-md bg-[#eef2f7]" />
+      ))}
+    </nav>
   );
 }

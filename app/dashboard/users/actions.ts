@@ -2,6 +2,7 @@
 
 import { getCurrentUserProfile } from "@/lib/user-profile";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 function optionalNumber(value: FormDataEntryValue | null) {
@@ -37,15 +38,26 @@ export async function updateUserProfile(formData: FormData) {
   await requireActiveAdmin();
 
   const id = String(formData.get("id") ?? "");
+  const role = String(formData.get("role") ?? "agent").trim() || "agent";
+  const updateData: {
+    buyer_id?: number | null;
+    ppc_status: boolean;
+    role: string;
+    status: string;
+  } = {
+    ppc_status: formData.get("ppc_status") === "on",
+    role,
+    status: String(formData.get("status") ?? "pending").trim() || "pending",
+  };
+
+  if (role !== "admin") {
+    updateData.buyer_id = optionalNumber(formData.get("buyer_id"));
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("user_profiles")
-    .update({
-      buyer_id: optionalNumber(formData.get("buyer_id")),
-      ppc_status: formData.get("ppc_status") === "on",
-      role: String(formData.get("role") ?? "agent").trim() || "agent",
-      status: String(formData.get("status") ?? "pending").trim() || "pending",
-    })
+    .update(updateData)
     .eq("id", id);
 
   if (error) {
@@ -84,6 +96,66 @@ export async function deletePendingProfile(formData: FormData) {
   const id = requiredNumber(formData.get("id"));
   const supabase = await createClient();
   const { error } = await supabase.from("pending_profiles").delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/dashboard/users");
+}
+
+export async function invitePendingProfile(formData: FormData) {
+  await requireActiveAdmin();
+
+  const id = requiredNumber(formData.get("id"));
+  const supabase = await createClient();
+  const { data: pendingProfile, error: pendingError } = await supabase
+    .from("pending_profiles")
+    .select("email,full_name,buyer_id")
+    .eq("id", id)
+    .single<{
+      email: string;
+      full_name: string | null;
+      buyer_id: number;
+    }>();
+
+  if (pendingError) {
+    throw new Error(pendingError.message);
+  }
+
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is required on the server to invite users.",
+    );
+  }
+
+  const appUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
+
+  const admin = createSupabaseAdminClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const { error } = await admin.auth.admin.inviteUserByEmail(
+    pendingProfile.email,
+    {
+      redirectTo: `${appUrl}/auth/confirm?next=/dashboard`,
+      data: {
+        full_name: pendingProfile.full_name,
+        buyer_id: pendingProfile.buyer_id,
+      },
+    },
+  );
 
   if (error) {
     throw new Error(error.message);

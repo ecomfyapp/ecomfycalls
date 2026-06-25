@@ -4,10 +4,16 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   deletePendingProfile,
-  updatePendingProfile,
+  invitePendingProfile,
   updateUserProfile,
 } from "./actions";
-import { CheckCircle2, Clock3, Database, ShieldAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  Database,
+  ShieldAlert,
+  Trash2,
+} from "lucide-react";
 import { CopyIdButton } from "@/components/copy-id-button";
 import { SheetTabs } from "@/components/sheet-tabs";
 import { ProfileSelect } from "@/components/profile-select";
@@ -159,12 +165,13 @@ async function UsersContent() {
             <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm">
               <colgroup>
                 <col style={{ width: "6%" }} />
-                <col style={{ width: "26%" }} />
+                <col style={{ width: "24%" }} />
                 <col style={{ width: "20%" }} />
-                <col style={{ width: "11%" }} />
+                <col style={{ width: "10%" }} />
                 <col style={{ width: "14%" }} />
                 <col style={{ width: "10%" }} />
-                <col style={{ width: "13%" }} />
+                <col style={{ width: "9%" }} />
+                <col style={{ width: "7%" }} />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-[#f8fbff] text-xs uppercase text-[#647084]">
                 <tr>
@@ -175,7 +182,8 @@ async function UsersContent() {
                     "Buyer ID",
                     "Account status",
                     "Created",
-                    "Actions",
+                    "Invite",
+                    "",
                   ].map((heading) => (
                     <th
                       key={heading}
@@ -301,13 +309,30 @@ function UserProfileRow({ profile }: { profile: UserProfile }) {
         />
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
-          name="buyer_id"
-          type="number"
-          defaultValue={profile.buyer_id}
-          className="w-full"
-          form={`user-${profile.id}`}
-        />
+        {profile.role === "admin" ? (
+          <>
+            <input
+              type="hidden"
+              name="buyer_id"
+              value={profile.buyer_id ?? ""}
+              form={`user-${profile.id}`}
+            />
+            <input
+              type="text"
+              defaultValue={profile.buyer_id ?? ""}
+              disabled
+              className="h-8 w-full rounded-md border border-[#d8e2f0] bg-[#f1f5fb] px-2 text-sm text-[#94a3b8]"
+            />
+          </>
+        ) : (
+          <TableInput
+            name="buyer_id"
+            type="number"
+            defaultValue={profile.buyer_id}
+            className="w-full"
+            form={`user-${profile.id}`}
+          />
+        )}
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
         <span className="block truncate font-semibold text-[#0b1020]">
@@ -358,59 +383,47 @@ function PendingProfileRow({ profile }: { profile: PendingProfile }) {
   return (
     <>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <form action={updatePendingProfile} id={`pending-${profile.id}`}>
-          <input type="hidden" name="id" value={profile.id} />
-        </form>
         <span className="font-mono text-xs text-[#647084]">{profile.id}</span>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
-          name="email"
-          defaultValue={profile.email}
-          className="w-full"
-          form={`pending-${profile.id}`}
-        />
+        <span className="block truncate">{profile.email}</span>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
-          name="full_name"
-          defaultValue={profile.full_name}
-          form={`pending-${profile.id}`}
-        />
+        <span className="block truncate font-medium">
+          {profile.full_name ?? "-"}
+        </span>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
-          name="buyer_id"
-          type="number"
-          defaultValue={profile.buyer_id}
-          className="w-full"
-          form={`pending-${profile.id}`}
-        />
+        <span className="block truncate">{profile.buyer_id}</span>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <TableInput
-          name="account_status"
-          defaultValue={profile.account_status}
-          className="w-full"
-          form={`pending-${profile.id}`}
-        />
+        <span className="block truncate">{profile.account_status ?? "-"}</span>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2 text-xs text-[#647084]">
         {new Date(profile.created_at).toLocaleDateString()}
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
-        <div className="flex flex-wrap gap-2">
-          <SaveRowButton form={`pending-${profile.id}`} />
-          <form action={deletePendingProfile}>
+        <form action={invitePendingProfile}>
+          <input type="hidden" name="id" value={profile.id} />
+          <button
+            type="submit"
+            className="rounded-md bg-[#173785] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#0f2a6c]"
+          >
+            Invite
+          </button>
+        </form>
+      </td>
+      <td className="border-b border-[#eef2f7] px-3 py-2">
+        <form action={deletePendingProfile}>
             <input type="hidden" name="id" value={profile.id} />
             <button
               type="submit"
-              className="rounded-md border border-[#ffd3d3] bg-white px-2.5 py-1.5 text-sm font-semibold text-[#b91c1c] hover:bg-[#fff8f8]"
+              aria-label="Delete pending user"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-[#ffd3d3] bg-white text-[#b91c1c] hover:bg-[#fff8f8]"
             >
-              Delete
+              <Trash2 className="h-4 w-4" />
             </button>
-          </form>
-        </div>
+        </form>
       </td>
     </>
   );
