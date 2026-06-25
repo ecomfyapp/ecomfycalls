@@ -11,9 +11,9 @@ export function SaveRowButton({ form }: { form: string }) {
       form={form}
       disabled={isSaving}
       onClick={() => setIsSaving(true)}
-      className="rounded-md bg-[#173785] px-2.5 py-1.5 text-sm font-semibold text-white hover:bg-[#0f2a6c] disabled:cursor-wait disabled:opacity-70"
+      className="rounded-md bg-[#173785] px-2.5 py-1.5 text-sm font-semibold text-white hover:bg-[#0f2a6c] disabled:cursor-default disabled:opacity-70"
     >
-      {isSaving ? "Saving..." : "Save"}
+      Save
     </button>
   );
 }
