@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { InviteHashRedirect } from "@/components/invite-hash-redirect";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ArrowRight, BadgeCheck, Clock3, PhoneCall, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -63,6 +64,7 @@ const steps = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-white text-[#0b1020] dark:bg-[#05070d] dark:text-white">
+      <InviteHashRedirect />
       <div className="border-b border-white/10 bg-[#080719] px-4 py-2 text-center text-sm text-white">
         <span className="font-medium">New:</span>{" "}
         High-intent insurance calls for licensed agents and teams.
