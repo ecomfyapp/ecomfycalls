@@ -11,7 +11,11 @@ export type InvitePendingProfileState = {
 };
 
 function getErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message) {
+  if (
+    error instanceof Error &&
+    error.message &&
+    error.message.trim() !== "{}"
+  ) {
     return error.message;
   }
 
@@ -22,13 +26,14 @@ function getErrorMessage(error: unknown) {
       code?: unknown;
     };
 
-    const message =
+    const rawMessage =
       typeof maybeError.message === "string" && maybeError.message
         ? maybeError.message
         : typeof maybeError.error_description === "string" &&
             maybeError.error_description
           ? maybeError.error_description
           : "";
+    const message = rawMessage.trim() === "{}" ? "" : rawMessage;
 
     if (message && maybeError.code) {
       return `${message} (${String(maybeError.code)})`;
@@ -43,9 +48,9 @@ function getErrorMessage(error: unknown) {
     const serialized = JSON.stringify(error);
     return serialized && serialized !== "{}"
       ? serialized
-      : "Supabase did not return a detailed error message.";
+      : "Supabase invite failed without details. Check Auth email settings, redirect URLs, and the service role key.";
   } catch {
-    return "Unknown error.";
+    return "Supabase invite failed. Check Auth email settings, redirect URLs, and the service role key.";
   }
 }
 
@@ -169,6 +174,24 @@ export async function invitePendingProfile(
 
     if (pendingError) {
       throw new Error(getErrorMessage(pendingError));
+    }
+
+    const { data: existingProfile, error: existingProfileError } =
+      await supabase
+        .from("user_profiles")
+        .select("id,email")
+        .ilike("email", pendingProfile.email)
+        .maybeSingle<{ id: string; email: string | null }>();
+
+    if (existingProfileError) {
+      throw new Error(getErrorMessage(existingProfileError));
+    }
+
+    if (existingProfile) {
+      return {
+        status: "error",
+        message: "This email already exists in Active Users.",
+      };
     }
 
     const supabaseUrl =

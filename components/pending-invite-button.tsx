@@ -38,7 +38,7 @@ export function PendingInviteButton({ id }: { id: number }) {
       <SubmitButton />
       {state.message ? (
         <span
-          className={`max-w-40 text-xs ${
+          className={`block max-w-56 leading-snug text-xs ${
             state.status === "success" ? "text-[#047857]" : "text-[#b91c1c]"
           }`}
         >
