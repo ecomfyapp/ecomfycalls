@@ -31,6 +31,25 @@ export async function GET() {
 
 ## Asterisk incoming-call webhook
 
+## Softphone WebRTC config
+
+Endpoint:
+
+```txt
+GET /api/softphone/config
+```
+
+This route is only available to active agents. It uses:
+
+- `ASTERISK_WSS_URL`
+- `ASTERISK_SIP_DOMAIN`
+- `ASTERISK_SIP_PASSWORD` as the shared SIP password
+- `user_profiles.buyer_id` as the agent SIP extension
+
+Because every agent has their own extension, do not use a global
+`ASTERISK_SIP_EXTENSION` in production. This first version assumes Asterisk uses
+the same SIP password for all web agent extensions.
+
 Endpoint:
 
 ```txt

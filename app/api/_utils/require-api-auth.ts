@@ -9,6 +9,7 @@ type ApiUser = {
 type ApiProfile = {
   id: string;
   email: string | null;
+  buyer_id: number | null;
   role: string;
   status: string;
 };
@@ -53,7 +54,7 @@ export async function requireApiAuth(
 
   const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
-    .select("id,email,role,status")
+    .select("id,email,buyer_id,role,status")
     .eq("id", user.id)
     .maybeSingle<ApiProfile>();
 

@@ -8,16 +8,13 @@ export async function GET() {
     return auth.response;
   }
 
-  const extension =
-    process.env.ASTERISK_SIP_EXTENSION_PREFIX &&
-    process.env.ASTERISK_SIP_EXTENSION_PREFIX.trim()
-      ? `${process.env.ASTERISK_SIP_EXTENSION_PREFIX}${auth.user.id.slice(0, 6)}`
-      : process.env.ASTERISK_SIP_EXTENSION;
-
   const config = {
     wssUrl: process.env.ASTERISK_WSS_URL,
     sipDomain: process.env.ASTERISK_SIP_DOMAIN,
-    extension,
+    extension:
+      auth.profile?.buyer_id === null || auth.profile?.buyer_id === undefined
+        ? undefined
+        : String(auth.profile.buyer_id),
     password: process.env.ASTERISK_SIP_PASSWORD,
   };
 
