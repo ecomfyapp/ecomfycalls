@@ -123,7 +123,17 @@ async function AgentIncomingCallPreview() {
     return null;
   }
 
-  return <IncomingCallPopup enabled preview />;
+  return (
+    <IncomingCallPopup
+      enabled
+      preview
+      agentExtension={
+        profile.buyer_id !== null && profile.buyer_id !== undefined
+          ? String(profile.buyer_id)
+          : undefined
+      }
+    />
+  );
 }
 
 function SidebarAccountSkeleton() {

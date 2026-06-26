@@ -1,9 +1,19 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
 import { Phone, PhoneCall, PhoneOff, ShieldCheck, Volume2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+type IncomingCallData = {
+  call_id: string;
+  caller_number: string;
+  caller_name: string;
+  vertical: string;
+  metadata: Record<string, unknown>;
+};
+
 type IncomingCallPopupProps = {
+  agentExtension?: string;
   enabled?: boolean;
   preview?: boolean;
   demoEveryMs?: number;
@@ -21,11 +31,13 @@ function CallerInitials({ name }: { name: string }) {
 }
 
 export function IncomingCallPopup({
+  agentExtension,
   enabled = true,
   preview = true,
   demoEveryMs,
 }: IncomingCallPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [callData, setCallData] = useState<IncomingCallData | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const ringIntervalRef = useRef<number | null>(null);
 
@@ -104,6 +116,7 @@ export function IncomingCallPopup({
   }, [stopRinging]);
 
   function openPreview() {
+    setCallData(null);
     setIsOpen(true);
   }
 
@@ -152,6 +165,29 @@ export function IncomingCallPopup({
     return () => window.clearInterval(interval);
   }, [demoEveryMs, enabled]);
 
+  useEffect(() => {
+    if (!enabled || !agentExtension) {
+      return;
+    }
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`calls:agent:${agentExtension}`)
+      .on(
+        "broadcast",
+        { event: "incoming_call" },
+        (msg: { payload: IncomingCallData }) => {
+          setCallData(msg.payload);
+          setIsOpen(true);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [agentExtension, enabled]);
+
   if (!enabled) {
     return null;
   }
@@ -192,27 +228,37 @@ export function IncomingCallPopup({
               <div className="mt-8 flex justify-center">
                 <div className="relative">
                   <span className="absolute inset-0 animate-ping rounded-full bg-[#10b981]/20" />
-                  <CallerInitials name="Sarah" />
+                  <CallerInitials
+                    name={callData?.caller_name || callData?.caller_number || "?"}
+                  />
                 </div>
               </div>
 
-              <h2 className="mt-6 text-3xl font-semibold">Sarah Miller</h2>
+              <h2 className="mt-6 text-3xl font-semibold">
+                {callData?.caller_name || callData?.caller_number || "Unknown caller"}
+              </h2>
               <p className="mt-2 text-[#647084]">
-                High-intent insurance caller
+                {callData ? callData.caller_number : "High-intent insurance caller"}
               </p>
 
               <div className="mt-5 grid grid-cols-2 gap-3 text-left text-sm">
                 <div className="rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
                   <p className="text-[#647084]">Vertical</p>
-                  <p className="mt-1 font-semibold">Medicare</p>
+                  <p className="mt-1 font-semibold">
+                    {callData?.vertical || "Medicare"}
+                  </p>
                 </div>
                 <div className="rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
-                  <p className="text-[#647084]">Location</p>
-                  <p className="mt-1 font-semibold">Tampa, FL</p>
+                  <p className="text-[#647084]">Call ID</p>
+                  <p className="mt-1 truncate font-mono text-xs font-semibold">
+                    {callData?.call_id || "—"}
+                  </p>
                 </div>
                 <div className="rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
-                  <p className="text-[#647084]">Intent score</p>
-                  <p className="mt-1 font-semibold text-[#047857]">94</p>
+                  <p className="text-[#647084]">Number</p>
+                  <p className="mt-1 font-semibold">
+                    {callData?.caller_number || "—"}
+                  </p>
                 </div>
                 <div className="rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
                   <p className="text-[#647084]">Source</p>

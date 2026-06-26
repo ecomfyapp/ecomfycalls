@@ -1,3 +1,4 @@
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 
 type IncomingCallPayload = {
@@ -47,8 +48,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // This webhook confirms the event. The actual call audio still arrives by
-  // SIP/WebRTC when the browser is registered as the agent extension.
+  const supabase = createServiceClient();
+  const channel = supabase.channel(`calls:agent:${payload.agent_extension}`);
+
+  await channel.send({
+    type: "broadcast",
+    event: "incoming_call",
+    payload: {
+      call_id: payload.call_id,
+      caller_number: payload.caller_number ?? "",
+      caller_name: payload.caller_name ?? "",
+      vertical: payload.vertical ?? "",
+      metadata: payload.metadata ?? {},
+    },
+  });
+
+  await supabase.removeChannel(channel);
+
   return NextResponse.json({
     ok: true,
     received: {
