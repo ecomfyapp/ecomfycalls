@@ -38,6 +38,14 @@ type UserAgent = {
   on: (event: string, handler: (data: NewRtcSessionEvent) => void) => void;
 };
 
+type UAConfig = {
+  sockets: JsSIPModule["WebSocketInterface"][];
+  uri: string;
+  password: string;
+  session_timers: boolean;
+  pcConfig?: RTCConfiguration;
+};
+
 function statusColor(status: string) {
   if (status === "Online") return "text-[#047857]";
   if (status.includes("Error")) return "text-[#b91c1c]";
@@ -80,12 +88,19 @@ export function AgentSoftphone() {
       }
 
       const socket = new JsSIP.WebSocketInterface(config.wssUrl);
-      const ua = new JsSIP.UA({
+      const uaConfig: UAConfig = {
         sockets: [socket],
         uri: `sip:${config.extension}@${config.sipDomain}`,
         password: config.password,
         session_timers: false,
-      }) as UserAgent;
+        pcConfig: {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+          ],
+        },
+      };
+      const ua = new JsSIP.UA(uaConfig) as UserAgent;
 
       uaRef.current = ua;
 
