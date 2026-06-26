@@ -51,11 +51,115 @@ export function AgentSoftphone() {
   const [activeCall, setActiveCall] = useState<SipSession | null>(null);
   const uaRef = useRef<UserAgent | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const ringIntervalRef = useRef<number | null>(null);
+
+  const getAudioContext = useCallback(() => {
+    const audioWindow = window as Window &
+      typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+      };
+    const AudioContextClass =
+      audioWindow.AudioContext || audioWindow.webkitAudioContext;
+
+    if (!AudioContextClass) {
+      return null;
+    }
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextClass();
+    }
+
+    return audioContextRef.current;
+  }, []);
+
+  const unlockAudio = useCallback(async () => {
+    const audioContext = getAudioContext();
+
+    if (audioContext?.state === "suspended") {
+      await audioContext.resume();
+    }
+  }, [getAudioContext]);
+
+  const playRingOnce = useCallback(async () => {
+    const audioContext = getAudioContext();
+
+    if (!audioContext) {
+      return;
+    }
+
+    await unlockAudio();
+
+    if (audioContext.state !== "running") {
+      return;
+    }
+
+    const now = audioContext.currentTime;
+
+    [0, 0.62].forEach((offset) => {
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(0.0001, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.2, now + offset + 0.02);
+      gain.gain.setValueAtTime(0.2, now + offset + 0.42);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.5);
+      gain.connect(audioContext.destination);
+
+      [440, 480].forEach((frequency) => {
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, now + offset);
+        oscillator.connect(gain);
+        oscillator.start(now + offset);
+        oscillator.stop(now + offset + 0.52);
+      });
+    });
+  }, [getAudioContext, unlockAudio]);
+
+  const stopRinging = useCallback(() => {
+    if (ringIntervalRef.current !== null) {
+      window.clearInterval(ringIntervalRef.current);
+      ringIntervalRef.current = null;
+    }
+  }, []);
 
   const cleanupSession = useCallback(() => {
+    stopRinging();
     setIncomingCall(null);
     setActiveCall(null);
-  }, []);
+  }, [stopRinging]);
+
+  useEffect(() => {
+    function unlockOnInteraction() {
+      void unlockAudio();
+      window.removeEventListener("pointerdown", unlockOnInteraction);
+      window.removeEventListener("keydown", unlockOnInteraction);
+    }
+
+    window.addEventListener("pointerdown", unlockOnInteraction);
+    window.addEventListener("keydown", unlockOnInteraction);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockOnInteraction);
+      window.removeEventListener("keydown", unlockOnInteraction);
+      stopRinging();
+      void audioContextRef.current?.close();
+      audioContextRef.current = null;
+    };
+  }, [stopRinging, unlockAudio]);
+
+  useEffect(() => {
+    if (!incomingCall) {
+      stopRinging();
+      return;
+    }
+
+    void playRingOnce();
+    ringIntervalRef.current = window.setInterval(() => {
+      void playRingOnce();
+    }, 3000);
+
+    return stopRinging;
+  }, [incomingCall, playRingOnce, stopRinging]);
 
   useEffect(() => {
     let isMounted = true;
