@@ -1,6 +1,7 @@
 "use client";
 
-import { PhoneCall, PhoneOff, Radio, ShieldAlert, Wifi } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Phone, PhoneCall, PhoneOff, ShieldCheck, Volume2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type SoftphoneConfig =
@@ -38,18 +39,29 @@ type UserAgent = {
   on: (event: string, handler: (data: NewRtcSessionEvent) => void) => void;
 };
 
+type IncomingCallData = {
+  call_id: string;
+  caller_number: string;
+  caller_name: string;
+  vertical: string;
+  metadata: Record<string, unknown>;
+};
 
-function statusColor(status: string) {
-  if (status === "Online") return "text-[#047857]";
-  if (status.includes("Error")) return "text-[#b91c1c]";
-  return "text-[#647084]";
+function CallerInitials({ name }: { name: string }) {
+  return (
+    <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[#173785] text-2xl font-semibold text-white shadow-lg shadow-[#173785]/25">
+      <span>{name.slice(0, 1).toUpperCase()}</span>
+      <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#10b981] ring-4 ring-white">
+        <Phone className="h-3.5 w-3.5 text-white" />
+      </span>
+    </div>
+  );
 }
 
 export function AgentSoftphone() {
-  const [status, setStatus] = useState("Disconnected");
-  const [configError, setConfigError] = useState("");
   const [incomingCall, setIncomingCall] = useState<SipSession | null>(null);
   const [activeCall, setActiveCall] = useState<SipSession | null>(null);
+  const [callData, setCallData] = useState<IncomingCallData | null>(null);
   const uaRef = useRef<UserAgent | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -127,6 +139,7 @@ export function AgentSoftphone() {
     stopRinging();
     setIncomingCall(null);
     setActiveCall(null);
+    setCallData(null);
   }, [stopRinging]);
 
   useEffect(() => {
@@ -172,39 +185,22 @@ export function AgentSoftphone() {
       ]);
       const config = (await configResponse.json()) as SoftphoneConfig;
 
-      if (!isMounted) {
-        return;
-      }
-
-      if (!config.configured) {
-        setConfigError(
-          `Missing Asterisk config: ${config.missing.join(", ")}`,
-        );
-        setStatus("Not configured");
+      if (!isMounted || !config.configured) {
+        if (!config.configured) {
+          console.warn("Softphone is not configured:", config.missing.join(", "));
+        }
         return;
       }
 
       const socket = new JsSIP.WebSocketInterface(config.wssUrl);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ua = new JsSIP.UA({
         sockets: [socket],
         uri: `sip:${config.extension}@${config.sipDomain}`,
         password: config.password,
         session_timers: false,
-        pcConfig: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-          ],
-        },
-      } as any) as UserAgent;
+      }) as UserAgent;
 
       uaRef.current = ua;
-
-      ua.on("connected", () => setStatus("Connected to Asterisk"));
-      ua.on("registered", () => setStatus("Online"));
-      ua.on("registrationFailed", () => setStatus("Registration Error"));
-      ua.on("disconnected", () => setStatus("Disconnected"));
 
       ua.on("newRTCSession", (data: NewRtcSessionEvent) => {
         const session = data.session;
@@ -216,9 +212,7 @@ export function AgentSoftphone() {
         setIncomingCall(session);
 
         session.on("peerconnection", () => {
-          const peerConnection = session.connection;
-
-          peerConnection?.addEventListener("track", (event: RTCTrackEvent) => {
+          session.connection?.addEventListener("track", (event: RTCTrackEvent) => {
             if (remoteAudioRef.current) {
               remoteAudioRef.current.srcObject = event.streams[0];
             }
@@ -233,8 +227,7 @@ export function AgentSoftphone() {
     }
 
     startSoftphone().catch((error: unknown) => {
-      setStatus("Softphone Error");
-      setConfigError(error instanceof Error ? error.message : "Unknown error");
+      console.error("Unable to start the WebRTC softphone.", error);
     });
 
     return () => {
@@ -244,11 +237,28 @@ export function AgentSoftphone() {
     };
   }, [cleanupSession]);
 
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("calls:ringall")
+      .on(
+        "broadcast",
+        { event: "incoming_call" },
+        (message: { payload: IncomingCallData }) => setCallData(message.payload),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+
   function answerCall() {
     if (!incomingCall) {
       return;
     }
 
+    stopRinging();
     incomingCall.answer({
       mediaConstraints: {
         audio: true,
@@ -260,89 +270,100 @@ export function AgentSoftphone() {
   }
 
   function hangupCall() {
+    stopRinging();
     activeCall?.terminate();
     incomingCall?.terminate();
     cleanupSession();
   }
 
+  const caller = callData?.caller_name || callData?.caller_number || "Incoming caller";
+
   return (
     <>
       <audio ref={remoteAudioRef} autoPlay />
 
-      <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-[#173785]">
-              <Radio className="h-5 w-5" />
-              <h2 className="text-xl font-semibold text-[#0b1020]">
-                WebRTC softphone
-              </h2>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-[#647084]">
-              Browser registration for receiving Asterisk calls.
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-[#647084]">Status</p>
-            <p className={`mt-1 text-sm font-semibold ${statusColor(status)}`}>
-              {status}
-            </p>
-          </div>
-        </div>
-
-        {configError ? (
-          <div className="mt-4 flex gap-3 rounded-[8px] border border-[#ffd3d3] bg-[#fff8f8] p-3 text-sm text-[#b91c1c]">
-            <ShieldAlert className="h-5 w-5 shrink-0" />
-            <span>{configError}</span>
-          </div>
-        ) : null}
-
-        <div className="mt-5 flex items-center justify-between rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-[#647084]">
-            <Wifi className="h-4 w-4 text-[#173785]" />
-            SIP over secure WebSocket
-          </div>
-          {activeCall ? (
-            <button
-              type="button"
-              onClick={hangupCall}
-              className="flex h-9 items-center gap-2 rounded-md bg-[#ef4444] px-3 text-sm font-semibold text-white hover:bg-[#dc2626]"
-            >
-              <PhoneOff className="h-4 w-4" />
-              Hang up
-            </button>
-          ) : null}
-        </div>
-      </section>
-
       {incomingCall ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 px-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-md rounded-[8px] border border-[#d8e2f0] bg-white p-6 text-center shadow-2xl shadow-black/50">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#173785] text-white">
-              <PhoneCall className="h-9 w-9" />
-            </div>
-            <h2 className="mt-5 text-3xl font-semibold">Incoming call</h2>
-            <p className="mt-2 text-[#647084]">Asterisk is sending a call.</p>
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={hangupCall}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-[#ef4444] text-sm font-semibold text-white hover:bg-[#dc2626]"
-              >
-                <PhoneOff className="h-4 w-4" />
-                Decline
-              </button>
-              <button
-                type="button"
-                onClick={answerCall}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-[#10b981] text-sm font-semibold text-white hover:bg-[#059669]"
-              >
-                <PhoneCall className="h-4 w-4" />
-                Answer
-              </button>
+          <div className="relative w-full max-w-md overflow-hidden rounded-[8px] border border-[#d8e2f0] bg-white shadow-2xl shadow-black/50">
+            <div className="absolute inset-x-0 top-0 h-1 bg-[#10b981]" />
+            <div className="p-6 text-center">
+              <div className="flex items-center justify-between">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#bfe8d8] bg-[#effdf7] px-3 py-1 text-sm font-medium text-[#047857]">
+                  <Volume2 className="h-4 w-4" />
+                  Incoming call
+                </div>
+                <button
+                  type="button"
+                  aria-label="Decline incoming call"
+                  onClick={hangupCall}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-[#647084] hover:bg-[#f1f5fb] hover:text-[#173785]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-8 flex justify-center">
+                <div className="relative">
+                  <span className="absolute inset-0 animate-ping rounded-full bg-[#10b981]/20" />
+                  <CallerInitials name={caller} />
+                </div>
+              </div>
+
+              <h2 className="mt-6 text-3xl font-semibold">{caller}</h2>
+              <p className="mt-2 text-[#647084]">
+                {callData?.caller_number || "High-intent insurance caller"}
+              </p>
+
+              <div className="mt-5 grid grid-cols-2 gap-3 text-left text-sm">
+                <div className="rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
+                  <p className="text-[#647084]">Vertical</p>
+                  <p className="mt-1 font-semibold">{callData?.vertical || "Insurance"}</p>
+                </div>
+                <div className="rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3">
+                  <p className="text-[#647084]">Call ID</p>
+                  <p className="mt-1 truncate font-mono text-xs font-semibold">
+                    {callData?.call_id || "Pending"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={hangupCall}
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-[#ef4444] text-sm font-semibold text-white shadow-sm hover:bg-[#dc2626]"
+                >
+                  <PhoneOff className="h-4 w-4" />
+                  Decline
+                </button>
+                <button
+                  type="button"
+                  onClick={answerCall}
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-[#10b981] text-sm font-semibold text-white shadow-sm hover:bg-[#059669]"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                  Answer
+                </button>
+              </div>
+
+              <p className="mt-4 flex items-center justify-center gap-2 text-xs text-[#647084]">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#047857]" />
+                Live call from Asterisk
+              </p>
             </div>
           </div>
         </div>
+      ) : null}
+
+      {activeCall ? (
+        <button
+          type="button"
+          onClick={hangupCall}
+          className="fixed bottom-5 right-5 z-40 flex h-11 items-center gap-2 rounded-full bg-[#ef4444] px-4 text-sm font-semibold text-white shadow-lg shadow-black/20 hover:bg-[#dc2626]"
+        >
+          <PhoneOff className="h-4 w-4" />
+          Hang up
+        </button>
       ) : null}
     </>
   );

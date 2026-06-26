@@ -1,5 +1,5 @@
 import { AccountPermissionsGuard } from "@/components/account-permissions-guard";
-import { IncomingCallPopup } from "@/components/incoming-call-popup";
+import { AgentSoftphone } from "@/components/agent-softphone";
 import { SidebarAccountCard } from "@/components/sidebar-account-card";
 import { getCurrentUserProfile } from "@/lib/user-profile";
 import {
@@ -78,7 +78,7 @@ export default async function DashboardLayout({
       </div>
       <AccountPermissionsGuard />
       <Suspense fallback={null}>
-        <AgentIncomingCallPreview />
+        <AgentSoftphoneRuntime />
       </Suspense>
     </main>
   );
@@ -116,24 +116,14 @@ async function SidebarNav() {
   );
 }
 
-async function AgentIncomingCallPreview() {
+async function AgentSoftphoneRuntime() {
   const { profile } = await getCurrentUserProfile();
 
   if (profile?.role !== "agent" || profile.status !== "active") {
     return null;
   }
 
-  return (
-    <IncomingCallPopup
-      enabled
-      preview
-      agentExtension={
-        profile.buyer_id !== null && profile.buyer_id !== undefined
-          ? String(profile.buyer_id)
-          : undefined
-      }
-    />
-  );
+  return <AgentSoftphone />;
 }
 
 function SidebarAccountSkeleton() {
