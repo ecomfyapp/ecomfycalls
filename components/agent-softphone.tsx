@@ -62,6 +62,8 @@ export function AgentSoftphone() {
   const [incomingCall, setIncomingCall] = useState<SipSession | null>(null);
   const [activeCall, setActiveCall] = useState<SipSession | null>(null);
   const [callData, setCallData] = useState<IncomingCallData | null>(null);
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const uaRef = useRef<UserAgent | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -140,7 +142,24 @@ export function AgentSoftphone() {
     setIncomingCall(null);
     setActiveCall(null);
     setCallData(null);
+    setCallStartedAt(null);
+    setElapsedSeconds(0);
   }, [stopRinging]);
+
+  useEffect(() => {
+    if (!callStartedAt) {
+      return;
+    }
+
+    const updateElapsedTime = () => {
+      setElapsedSeconds(Math.floor((Date.now() - callStartedAt) / 1000));
+    };
+
+    updateElapsedTime();
+    const interval = window.setInterval(updateElapsedTime, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [callStartedAt]);
 
   useEffect(() => {
     function unlockOnInteraction() {
@@ -267,6 +286,7 @@ export function AgentSoftphone() {
     });
     setActiveCall(incomingCall);
     setIncomingCall(null);
+    setCallStartedAt(Date.now());
   }
 
   function hangupCall() {
@@ -277,6 +297,9 @@ export function AgentSoftphone() {
   }
 
   const caller = callData?.caller_name || callData?.caller_number || "Incoming caller";
+  const callDuration = new Date(elapsedSeconds * 1000)
+    .toISOString()
+    .slice(11, 19);
 
   return (
     <>
@@ -356,14 +379,30 @@ export function AgentSoftphone() {
       ) : null}
 
       {activeCall ? (
-        <button
-          type="button"
-          onClick={hangupCall}
-          className="fixed bottom-5 right-5 z-40 flex h-11 items-center gap-2 rounded-full bg-[#ef4444] px-4 text-sm font-semibold text-white shadow-lg shadow-black/20 hover:bg-[#dc2626]"
-        >
-          <PhoneOff className="h-4 w-4" />
-          Hang up
-        </button>
+        <section className="fixed bottom-5 right-5 z-40 w-[min(360px,calc(100vw-2.5rem))] rounded-[8px] border border-[#d8e2f0] bg-white p-4 shadow-xl shadow-slate-950/20">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e9fff6] text-[#047857]">
+                <PhoneCall className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{caller}</p>
+                <p className="mt-0.5 text-xs text-[#647084]">Live call in progress</p>
+              </div>
+            </div>
+            <time className="shrink-0 font-mono text-sm font-semibold text-[#173785]">
+              {callDuration}
+            </time>
+          </div>
+          <button
+            type="button"
+            onClick={hangupCall}
+            className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#ef4444] text-sm font-semibold text-white hover:bg-[#dc2626]"
+          >
+            <PhoneOff className="h-4 w-4" />
+            Hang up
+          </button>
+        </section>
       ) : null}
     </>
   );
