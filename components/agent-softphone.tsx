@@ -444,10 +444,36 @@ export function AgentSoftphone() {
         video: false,
       },
     });
-    setRemoteAudioStatus("waiting");
     setActiveCall(incomingCall);
     setIncomingCall(null);
     setCallStartedAt(Date.now());
+
+    // The track event fires before the agent clicks Answer (JsSIP sets remote description
+    // from the INVITE before answer() is called), so the initial .play() call has no user
+    // gesture and Chrome blocks it. Retry here while we are inside the click handler.
+    const remoteAudio = remoteAudioRef.current;
+    if (remoteAudio) {
+      console.info("[Softphone] Retrying audio playback after answer.", {
+        hasSrcObject: !!remoteAudio.srcObject,
+        paused: remoteAudio.paused,
+        muted: remoteAudio.muted,
+        volume: remoteAudio.volume,
+      });
+      remoteAudio.muted = false;
+      remoteAudio.volume = 1;
+      void remoteAudio
+        .play()
+        .then(() => {
+          console.info("[Softphone] Remote audio playback confirmed after answer.");
+          setRemoteAudioStatus("receiving");
+        })
+        .catch((err: unknown) => {
+          console.warn("[Softphone] Browser blocked audio playback after answer.", err);
+          setRemoteAudioStatus("blocked");
+        });
+    } else {
+      setRemoteAudioStatus("waiting");
+    }
   }
 
   function hangupCall() {
