@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ArrowRight, BadgeCheck, Clock3, PhoneCall, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 const callTypes = [
@@ -76,11 +77,15 @@ export default function Home() {
 
       <header className="sticky top-0 z-20 border-b border-black/5 bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-[#05070d]/85">
         <nav className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#0b1020] text-sm font-bold text-white dark:bg-white dark:text-[#0b1020]">
-              EC
-            </span>
-            <span className="text-lg">EcomfyCalls</span>
+          <Link href="/" className="flex items-center" aria-label="Ecomfy Lead home">
+            <Image
+              src="/images/Ecomfy-Lead-Logo.png"
+              alt="Ecomfy Lead"
+              width={300}
+              height={72}
+              priority
+              className="h-auto w-[145px] sm:w-[165px]"
+            />
           </Link>
 
           <div className="hidden items-center gap-8 text-sm font-medium text-[#4b5567] dark:text-white/70 md:flex">
