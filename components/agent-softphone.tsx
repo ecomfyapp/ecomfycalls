@@ -71,6 +71,8 @@ export function AgentSoftphone() {
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const ringIntervalRef = useRef<number | null>(null);
+  const audioStatsIntervalRef = useRef<number | null>(null);
+  const attachedAudioTrackIdsRef = useRef("");
 
   const getAudioContext = useCallback(() => {
     const audioWindow = window as Window &
@@ -140,6 +142,13 @@ export function AgentSoftphone() {
     }
   }, []);
 
+  const stopAudioDiagnostics = useCallback(() => {
+    if (audioStatsIntervalRef.current !== null) {
+      window.clearInterval(audioStatsIntervalRef.current);
+      audioStatsIntervalRef.current = null;
+    }
+  }, []);
+
   const cleanupSession = useCallback(() => {
     stopRinging();
     setIncomingCall(null);
@@ -148,7 +157,9 @@ export function AgentSoftphone() {
     setCallStartedAt(null);
     setElapsedSeconds(0);
     setRemoteAudioStatus("waiting");
-  }, [stopRinging]);
+    attachedAudioTrackIdsRef.current = "";
+    stopAudioDiagnostics();
+  }, [stopAudioDiagnostics, stopRinging]);
 
   const attachRemoteAudio = useCallback((stream: MediaStream) => {
     const remoteAudio = remoteAudioRef.current;
@@ -158,10 +169,22 @@ export function AgentSoftphone() {
       return;
     }
 
+    const audioTrackIds = stream
+      .getAudioTracks()
+      .map((track) => track.id)
+      .sort()
+      .join(",");
+
+    if (audioTrackIds && audioTrackIds === attachedAudioTrackIdsRef.current) {
+      console.info("[Softphone] Remote audio stream already attached.");
+      return;
+    }
+
     console.info("[Softphone] Attaching remote audio stream.", {
       audioTracks: stream.getAudioTracks().length,
       videoTracks: stream.getVideoTracks().length,
     });
+    attachedAudioTrackIdsRef.current = audioTrackIds;
     remoteAudio.srcObject = stream;
     remoteAudio.muted = false;
     remoteAudio.volume = 1;
@@ -205,10 +228,11 @@ export function AgentSoftphone() {
       window.removeEventListener("pointerdown", unlockOnInteraction);
       window.removeEventListener("keydown", unlockOnInteraction);
       stopRinging();
+      stopAudioDiagnostics();
       void audioContextRef.current?.close();
       audioContextRef.current = null;
     };
-  }, [stopRinging, unlockAudio]);
+  }, [stopAudioDiagnostics, stopRinging, unlockAudio]);
 
   useEffect(() => {
     if (!incomingCall) {
@@ -282,6 +306,36 @@ export function AgentSoftphone() {
             iceConnectionState: peerConnection.iceConnectionState,
           });
 
+          const logInboundAudioStats = async () => {
+            try {
+              const stats = await peerConnection.getStats();
+
+              stats.forEach((report) => {
+                const isInboundAudio =
+                  report.type === "inbound-rtp" &&
+                  (report.kind === "audio" || report.mediaType === "audio");
+
+                if (isInboundAudio) {
+                  console.info("[Softphone] Inbound audio RTP stats.", {
+                    bytesReceived: report.bytesReceived ?? 0,
+                    packetsReceived: report.packetsReceived ?? 0,
+                    packetsLost: report.packetsLost ?? 0,
+                    jitter: report.jitter ?? 0,
+                    audioLevel: report.audioLevel ?? "not reported",
+                  });
+                }
+              });
+            } catch (error) {
+              console.warn("[Softphone] Could not read inbound audio stats.", error);
+            }
+          };
+
+          stopAudioDiagnostics();
+          void logInboundAudioStats();
+          audioStatsIntervalRef.current = window.setInterval(() => {
+            void logInboundAudioStats();
+          }, 3000);
+
           const attachExistingAudioTracks = () => {
             const tracks = peerConnection
               .getReceivers()
@@ -348,7 +402,7 @@ export function AgentSoftphone() {
       uaRef.current?.stop();
       uaRef.current = null;
     };
-  }, [attachRemoteAudio, cleanupSession]);
+  }, [attachRemoteAudio, cleanupSession, stopAudioDiagnostics]);
 
   useEffect(() => {
     const supabase = createClient();
