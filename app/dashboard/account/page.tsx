@@ -1,3 +1,4 @@
+import { AccountProfileForm } from "@/components/account-profile-form";
 import { LogoutButton } from "@/components/logout-button";
 import { getCurrentUserProfile } from "@/lib/user-profile";
 import { redirect } from "next/navigation";
@@ -10,6 +11,8 @@ async function AccountContent() {
     redirect("/auth/login");
   }
 
+  const fullName = profile?.full_name || "";
+
   return (
     <div className="mx-auto w-full max-w-3xl">
       <h1 className="text-3xl font-semibold">Account</h1>
@@ -18,28 +21,12 @@ async function AccountContent() {
       </p>
 
       <section className="mt-8 rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
-        <dl className="grid gap-5 text-sm md:grid-cols-2">
-          <div>
-            <dt className="text-[#647084]">Email</dt>
-            <dd className="mt-1 font-medium">{profile?.email ?? user.email}</dd>
-          </div>
-          <div>
-            <dt className="text-[#647084]">Full name</dt>
-            <dd className="mt-1 font-medium">{profile?.full_name ?? "-"}</dd>
-          </div>
-          <div>
-            <dt className="text-[#647084]">Role</dt>
-            <dd className="mt-1 font-medium capitalize">
-              {profile?.role ?? "agent"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[#647084]">Status</dt>
-            <dd className="mt-1 font-medium capitalize">
-              {profile?.status ?? "pending"}
-            </dd>
-          </div>
-        </dl>
+        <AccountProfileForm
+          email={profile?.email ?? user.email ?? ""}
+          fullName={fullName}
+          role={profile?.role ?? "agent"}
+          profileStatus={profile?.status ?? "pending"}
+        />
 
         <div className="mt-8">
           <LogoutButton />
