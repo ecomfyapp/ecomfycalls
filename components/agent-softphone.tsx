@@ -64,6 +64,9 @@ export function AgentSoftphone() {
   const [callData, setCallData] = useState<IncomingCallData | null>(null);
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [remoteAudioStatus, setRemoteAudioStatus] = useState<
+    "waiting" | "receiving" | "blocked"
+  >("waiting");
   const uaRef = useRef<UserAgent | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -144,7 +147,34 @@ export function AgentSoftphone() {
     setCallData(null);
     setCallStartedAt(null);
     setElapsedSeconds(0);
+    setRemoteAudioStatus("waiting");
   }, [stopRinging]);
+
+  const attachRemoteAudio = useCallback((stream: MediaStream) => {
+    const remoteAudio = remoteAudioRef.current;
+
+    if (!remoteAudio) {
+      console.warn("[Softphone] Remote audio element is unavailable.");
+      return;
+    }
+
+    console.info("[Softphone] Attaching remote audio stream.", {
+      audioTracks: stream.getAudioTracks().length,
+      videoTracks: stream.getVideoTracks().length,
+    });
+    remoteAudio.srcObject = stream;
+    remoteAudio.muted = false;
+    remoteAudio.volume = 1;
+    setRemoteAudioStatus("receiving");
+
+    void remoteAudio
+      .play()
+      .then(() => console.info("[Softphone] Remote audio playback started."))
+      .catch((error: unknown) => {
+        setRemoteAudioStatus("blocked");
+        console.warn("[Softphone] Browser blocked remote audio playback.", error);
+      });
+  }, []);
 
   useEffect(() => {
     if (!callStartedAt) {
@@ -220,6 +250,14 @@ export function AgentSoftphone() {
       }) as UserAgent;
 
       uaRef.current = ua;
+      console.info("[Softphone] Starting SIP registration.");
+
+      ua.on("connected", () => console.info("[Softphone] Connected to Asterisk."));
+      ua.on("registered", () => console.info("[Softphone] SIP extension registered."));
+      ua.on("registrationFailed", () => {
+        console.warn("[Softphone] SIP registration failed.");
+      });
+      ua.on("disconnected", () => console.warn("[Softphone] Disconnected from Asterisk."));
 
       ua.on("newRTCSession", (data: NewRtcSessionEvent) => {
         const session = data.session;
@@ -228,18 +266,74 @@ export function AgentSoftphone() {
           return;
         }
 
+        console.info("[Softphone] Incoming SIP session received.");
         setIncomingCall(session);
 
         session.on("peerconnection", () => {
-          session.connection?.addEventListener("track", (event: RTCTrackEvent) => {
-            if (remoteAudioRef.current) {
-              remoteAudioRef.current.srcObject = event.streams[0];
+          const peerConnection = session.connection;
+
+          if (!peerConnection) {
+            console.warn("[Softphone] SIP session did not provide a peer connection.");
+            return;
+          }
+
+          console.info("[Softphone] Peer connection created.", {
+            connectionState: peerConnection.connectionState,
+            iceConnectionState: peerConnection.iceConnectionState,
+          });
+
+          const attachExistingAudioTracks = () => {
+            const tracks = peerConnection
+              .getReceivers()
+              .map((receiver) => receiver.track)
+              .filter((track): track is MediaStreamTrack => track?.kind === "audio");
+
+            if (tracks.length > 0) {
+              console.info("[Softphone] Found existing remote audio tracks.", {
+                count: tracks.length,
+              });
+              attachRemoteAudio(new MediaStream(tracks));
+            } else {
+              console.info("[Softphone] Waiting for remote audio tracks.");
+            }
+          };
+
+          peerConnection.addEventListener("track", (event: RTCTrackEvent) => {
+            console.info("[Softphone] Remote track received.", {
+              kind: event.track.kind,
+              streamCount: event.streams.length,
+            });
+            if (event.track.kind !== "audio") {
+              return;
+            }
+
+            attachRemoteAudio(
+              event.streams[0] ?? new MediaStream([event.track]),
+            );
+          });
+
+          peerConnection.addEventListener("addstream", (event: Event) => {
+            const stream = (event as Event & { stream?: MediaStream }).stream;
+
+            if (stream?.getAudioTracks().length) {
+              console.info("[Softphone] Legacy remote stream received.", {
+                audioTracks: stream.getAudioTracks().length,
+              });
+              attachRemoteAudio(stream);
             }
           });
+
+          attachExistingAudioTracks();
         });
 
-        session.on("ended", cleanupSession);
-        session.on("failed", cleanupSession);
+        session.on("ended", () => {
+          console.info("[Softphone] SIP session ended.");
+          cleanupSession();
+        });
+        session.on("failed", () => {
+          console.warn("[Softphone] SIP session failed.");
+          cleanupSession();
+        });
       });
 
       ua.start();
@@ -254,7 +348,7 @@ export function AgentSoftphone() {
       uaRef.current?.stop();
       uaRef.current = null;
     };
-  }, [cleanupSession]);
+  }, [attachRemoteAudio, cleanupSession]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -278,12 +372,14 @@ export function AgentSoftphone() {
     }
 
     stopRinging();
+    console.info("[Softphone] Answering incoming SIP call.");
     incomingCall.answer({
       mediaConstraints: {
         audio: true,
         video: false,
       },
     });
+    setRemoteAudioStatus("waiting");
     setActiveCall(incomingCall);
     setIncomingCall(null);
     setCallStartedAt(Date.now());
@@ -291,6 +387,7 @@ export function AgentSoftphone() {
 
   function hangupCall() {
     stopRinging();
+    console.info("[Softphone] Ending SIP call.");
     activeCall?.terminate();
     incomingCall?.terminate();
     cleanupSession();
@@ -387,7 +484,13 @@ export function AgentSoftphone() {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{caller}</p>
-                <p className="mt-0.5 text-xs text-[#647084]">Live call in progress</p>
+                <p className="mt-0.5 text-xs text-[#647084]">
+                  {remoteAudioStatus === "receiving"
+                    ? "Audio connected"
+                    : remoteAudioStatus === "blocked"
+                      ? "Audio playback blocked"
+                      : "Connecting audio"}
+                </p>
               </div>
             </div>
             <time className="shrink-0 font-mono text-sm font-semibold text-[#173785]">
