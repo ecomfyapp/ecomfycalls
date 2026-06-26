@@ -1,4 +1,5 @@
 import { getCurrentUserProfile, type UserProfile } from "@/lib/user-profile";
+import { AgentStatusSwitches } from "@/components/agent-status-switches";
 import {
   BadgeCheck,
   CalendarClock,
@@ -105,6 +106,10 @@ function AgentDashboard({
               <p className="text-sm text-white/65">Role: {profile.role}</p>
             </div>
           </div>
+          <AgentStatusSwitches
+            callsEnabled={profile.ppc_status}
+            leadsEnabled={profile.lead_status}
+          />
         </aside>
       </div>
 

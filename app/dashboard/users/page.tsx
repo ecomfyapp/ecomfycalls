@@ -64,7 +64,7 @@ async function UsersContent({
       supabase
         .from("user_profiles")
         .select(
-          "id,email,full_name,first_name,last_name,buyer_id,balance,ppc_status,role,status,created_at,updated_at",
+          "id,email,full_name,first_name,last_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
         )
         .order("created_at", { ascending: false })
         .returns<UserProfile[]>(),

@@ -1,3 +1,4 @@
+import { AccountPermissionsGuard } from "@/components/account-permissions-guard";
 import { SidebarAccountCard } from "@/components/sidebar-account-card";
 import { getCurrentUserProfile } from "@/lib/user-profile";
 import {
@@ -74,6 +75,7 @@ export default async function DashboardLayout({
           {children}
         </section>
       </div>
+      <AccountPermissionsGuard />
     </main>
   );
 }

@@ -9,6 +9,7 @@ export type UserProfile = {
   buyer_id: number | null;
   balance: number;
   ppc_status: boolean;
+  lead_status: boolean;
   role: string;
   status: string;
   created_at: string;
@@ -39,7 +40,7 @@ export async function getCurrentUserProfile() {
   const { data: profile, error } = await supabase
     .from("user_profiles")
     .select(
-      "id,email,full_name,first_name,last_name,buyer_id,balance,ppc_status,role,status,created_at,updated_at",
+      "id,email,full_name,first_name,last_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
     )
     .eq("id", user.id)
     .maybeSingle<UserProfile>();
@@ -60,7 +61,9 @@ export async function getCurrentUserProfile() {
       role: "agent",
       status: "pending",
     })
-    .select("id,email,full_name,role,status")
+    .select(
+      "id,email,full_name,first_name,last_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
+    )
     .single<UserProfile>();
 
   return {

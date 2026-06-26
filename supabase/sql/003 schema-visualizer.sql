@@ -15,6 +15,7 @@ CREATE TABLE public.user_profiles (
   buyer_id numeric,
   balance numeric NOT NULL DEFAULT 0.00,
   ppc_status boolean NOT NULL DEFAULT false,
+  lead_status boolean NOT NULL DEFAULT false,
   CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT user_profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
