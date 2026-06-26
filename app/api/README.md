@@ -9,6 +9,8 @@ Rules:
 - Use `requireApiAuth({ activeOnly: true })` when the endpoint should only run for active accounts.
 - Use `requireApiAuth({ roles: ["admin"] })` or `requireApiAuth({ roles: ["agent"] })` for role-specific endpoints.
 - The proxy also returns `401` JSON for unauthenticated `/api/*` requests.
+- Machine-to-machine webhooks, such as `/api/asterisk/*`, must validate their
+  own shared secret and must not expose user data.
 
 Example:
 
@@ -26,3 +28,29 @@ export async function GET() {
   return NextResponse.json({ ok: true, user: auth.user });
 }
 ```
+
+## Asterisk incoming-call webhook
+
+Endpoint:
+
+```txt
+POST /api/asterisk/incoming-call
+Authorization: Bearer <ASTERISK_WEBHOOK_SECRET>
+Content-Type: application/json
+```
+
+Payload:
+
+```json
+{
+  "call_id": "abc-123",
+  "agent_extension": "1001",
+  "caller_number": "+15550000000",
+  "caller_name": "Customer",
+  "vertical": "Medicare",
+  "metadata": {}
+}
+```
+
+The webhook is only a notification. Audio still arrives through SIP/WebRTC when
+the agent browser is registered as the SIP extension.
