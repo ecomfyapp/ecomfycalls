@@ -41,15 +41,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (!payload.call_id || !payload.agent_extension) {
+  if (!payload.call_id) {
     return NextResponse.json(
-      { error: "call_id and agent_extension are required." },
+      { error: "call_id is required." },
       { status: 400 },
     );
   }
 
+  // Broadcast to shared channel — all active agents subscribed to calls:ringall
+  // receive the caller info simultaneously. Asterisk handles the actual SIP
+  // ring-all natively; this is only for the rich UI popup.
   const supabase = createServiceClient();
-  const channel = supabase.channel(`calls:agent:${payload.agent_extension}`);
+  const channel = supabase.channel("calls:ringall");
 
   await channel.send({
     type: "broadcast",
@@ -67,9 +70,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    received: {
-      call_id: payload.call_id,
-      agent_extension: payload.agent_extension,
-    },
+    received: { call_id: payload.call_id },
   });
 }

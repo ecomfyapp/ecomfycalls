@@ -166,13 +166,13 @@ export function IncomingCallPopup({
   }, [demoEveryMs, enabled]);
 
   useEffect(() => {
-    if (!enabled || !agentExtension) {
+    if (!enabled) {
       return;
     }
 
     const supabase = createClient();
     const channel = supabase
-      .channel(`calls:agent:${agentExtension}`)
+      .channel("calls:ringall")
       .on(
         "broadcast",
         { event: "incoming_call" },
@@ -186,7 +186,7 @@ export function IncomingCallPopup({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [agentExtension, enabled]);
+  }, [enabled]);
 
   if (!enabled) {
     return null;
