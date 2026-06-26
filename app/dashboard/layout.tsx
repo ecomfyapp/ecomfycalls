@@ -1,4 +1,5 @@
 import { AccountPermissionsGuard } from "@/components/account-permissions-guard";
+import { IncomingCallPopup } from "@/components/incoming-call-popup";
 import { SidebarAccountCard } from "@/components/sidebar-account-card";
 import { getCurrentUserProfile } from "@/lib/user-profile";
 import {
@@ -76,6 +77,9 @@ export default async function DashboardLayout({
         </section>
       </div>
       <AccountPermissionsGuard />
+      <Suspense fallback={null}>
+        <AgentIncomingCallPreview />
+      </Suspense>
     </main>
   );
 }
@@ -110,6 +114,16 @@ async function SidebarNav() {
       })}
     </nav>
   );
+}
+
+async function AgentIncomingCallPreview() {
+  const { profile } = await getCurrentUserProfile();
+
+  if (profile?.role !== "agent" || profile.status !== "active") {
+    return null;
+  }
+
+  return <IncomingCallPopup enabled preview />;
 }
 
 function SidebarAccountSkeleton() {
