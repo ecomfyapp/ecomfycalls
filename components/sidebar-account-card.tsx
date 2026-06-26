@@ -37,8 +37,11 @@ export function SidebarAccountCard({
   const initial = name.charAt(0).toUpperCase() || "A";
 
   return (
-    <div className="flex items-center gap-2 rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-3 transition-colors hover:bg-[#eef5ff]">
-      <Link href="/account" className="flex min-w-0 flex-1 items-center gap-3">
+    <div className="flex items-center gap-2 rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] transition-colors hover:bg-[#eef5ff]">
+      <Link
+        href="/dashboard/account"
+        className="flex min-w-0 flex-1 items-center gap-3 p-3 pr-1"
+      >
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${avatarColor(name)}`}
         >
@@ -53,7 +56,9 @@ export function SidebarAccountCard({
           </span>
         </span>
       </Link>
-      <LogoutButton iconOnly />
+      <div className="pr-3">
+        <LogoutButton iconOnly />
+      </div>
     </div>
   );
 }
