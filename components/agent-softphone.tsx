@@ -81,19 +81,19 @@ export function AgentSoftphone() {
       }
 
       const socket = new JsSIP.WebSocketInterface(config.wssUrl);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ua = new JsSIP.UA({
         sockets: [socket],
         uri: `sip:${config.extension}@${config.sipDomain}`,
         password: config.password,
         session_timers: false,
-        // STUN servers so the browser discovers its public IP for ICE
         pcConfig: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
             { urls: "stun:stun1.l.google.com:19302" },
           ],
         },
-      } as Parameters<(typeof JsSIP)["UA"]["prototype"]["constructor"]>[0]) as UserAgent;
+      } as any) as UserAgent;
 
       uaRef.current = ua;
 
