@@ -266,12 +266,19 @@ export function AgentSoftphone() {
       }
 
       const socket = new JsSIP.WebSocketInterface(config.wssUrl);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ua = new JsSIP.UA({
         sockets: [socket],
         uri: `sip:${config.extension}@${config.sipDomain}`,
         password: config.password,
         session_timers: false,
-      }) as UserAgent;
+        pcConfig: {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+          ],
+        },
+      } as any) as UserAgent;
 
       uaRef.current = ua;
       console.info("[Softphone] Starting SIP registration.");
@@ -378,6 +385,10 @@ export function AgentSoftphone() {
           });
 
           attachExistingAudioTracks();
+        });
+
+        session.on("getusermediafailed", () => {
+          console.error("[Softphone] Microphone access denied or unavailable.");
         });
 
         session.on("ended", () => {
