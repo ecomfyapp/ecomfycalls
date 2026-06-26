@@ -64,7 +64,7 @@ async function UsersContent({
       supabase
         .from("user_profiles")
         .select(
-          "id,email,full_name,first_name,last_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
+          "id,email,full_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
         )
         .order("created_at", { ascending: false })
         .returns<UserProfile[]>(),
@@ -300,15 +300,8 @@ function UserProfileRow({ profile }: { profile: UserProfile }) {
       <td className="border-b border-[#eef2f7] px-3 py-2">
         <div className="flex min-w-0 flex-col justify-center">
           <span className="block truncate font-medium">
-            {profile.full_name ||
-              [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
-              "-"}
+            {profile.full_name || "-"}
           </span>
-          {profile.first_name || profile.last_name ? (
-            <span className="mt-1 block truncate text-xs text-[#647084]">
-              {[profile.first_name, profile.last_name].filter(Boolean).join(" ")}
-            </span>
-          ) : null}
         </div>
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">

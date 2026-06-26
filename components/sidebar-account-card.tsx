@@ -5,7 +5,6 @@ import Link from "next/link";
 function displayName(profile: UserProfile | null) {
   const name =
     profile?.full_name ||
-    [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
     profile?.email ||
     "Account";
 

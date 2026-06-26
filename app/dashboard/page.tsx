@@ -1,5 +1,6 @@
 import { getCurrentUserProfile, type UserProfile } from "@/lib/user-profile";
 import { AgentStatusSwitches } from "@/components/agent-status-switches";
+import { AgentSoftphone } from "@/components/agent-softphone";
 import {
   BadgeCheck,
   CalendarClock,
@@ -184,6 +185,8 @@ function AgentDashboard({
             Waiting for campaign setup
           </div>
         </section>
+
+        <AgentSoftphone />
       </div>
 
       <ProfileDebug profile={profile} error={error} />
