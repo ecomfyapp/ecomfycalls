@@ -3,7 +3,6 @@
 import { getCurrentUserProfile } from "@/lib/user-profile";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
-import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 
 export type InvitePendingProfileState = {
@@ -192,7 +191,6 @@ export async function updateUserProfile(formData: FormData) {
     ppc_status: boolean;
     role: string;
     status: string;
-    metadata?: Record<string, unknown>;
   } = {
     ppc_status: formData.get("ppc_status") === "on",
     role,
@@ -204,25 +202,6 @@ export async function updateUserProfile(formData: FormData) {
   }
 
   const supabase = await createClient();
-
-  if (role === "agent" && buyerId !== null) {
-    const { data: existing } = await supabase
-      .from("user_profiles")
-      .select("metadata")
-      .eq("id", id)
-      .maybeSingle<{ metadata: Record<string, unknown> | null }>();
-
-    const hasSipPassword =
-      typeof existing?.metadata?.sip_password === "string" &&
-      existing.metadata.sip_password.length > 0;
-
-    if (!hasSipPassword) {
-      updateData.metadata = {
-        ...(existing?.metadata ?? {}),
-        sip_password: randomBytes(12).toString("base64url").slice(0, 16),
-      };
-    }
-  }
 
   const { error } = await supabase
     .from("user_profiles")

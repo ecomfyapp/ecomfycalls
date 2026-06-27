@@ -1,6 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
-import { randomBytes } from "crypto";
 
 export type UserProfile = {
   id: string;
@@ -82,9 +81,6 @@ export async function getCurrentUserProfile() {
       balance: pendingRow.balance ?? 0,
       role: "agent",
       status: "active",
-      metadata: {
-        sip_password: randomBytes(12).toString("base64url").slice(0, 16),
-      },
     };
 
     // Remove from pending_profiles — migration complete.

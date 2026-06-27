@@ -14,6 +14,7 @@ CREATE TABLE public.user_profiles (
   balance numeric NOT NULL DEFAULT 0.00,
   ppc_status boolean NOT NULL DEFAULT false,
   lead_status boolean NOT NULL DEFAULT false,
+  sip_password text NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'::text),
   CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT user_profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );

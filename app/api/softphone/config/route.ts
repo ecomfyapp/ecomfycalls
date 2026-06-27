@@ -10,16 +10,13 @@ export async function GET() {
   }
 
   const supabase = await createClient();
-  const { data: profileMeta } = await supabase
+  const { data: sipCredentials } = await supabase
     .from("user_profiles")
-    .select("metadata")
+    .select("sip_password")
     .eq("id", auth.user.id)
-    .maybeSingle<{ metadata: Record<string, unknown> | null }>();
+    .maybeSingle<{ sip_password: string | null }>();
 
-  const sipPassword =
-    typeof profileMeta?.metadata?.sip_password === "string"
-      ? profileMeta.metadata.sip_password
-      : undefined;
+  const sipPassword = sipCredentials?.sip_password || undefined;
 
   const config = {
     wssUrl: process.env.ASTERISK_WSS_URL,
