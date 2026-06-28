@@ -3,6 +3,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
 
 export async function updateSession(request: NextRequest) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    request.nextUrl.hostname === "ecomfycalls.com"
+  ) {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.protocol = "https";
+    canonicalUrl.hostname = "www.ecomfycalls.com";
+    return NextResponse.redirect(canonicalUrl, 308);
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

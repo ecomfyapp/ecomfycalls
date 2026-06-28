@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { getAuthCallbackUrl } from "@/lib/auth-url";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +40,7 @@ export function SignUpForm({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/dashboard`,
+          emailRedirectTo: getAuthCallbackUrl("/dashboard"),
         },
       });
       if (error) throw error;
@@ -68,7 +69,7 @@ export function SignUpForm({
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/confirm?next=/dashboard`,
+          redirectTo: getAuthCallbackUrl("/dashboard"),
         },
       });
 
