@@ -1,6 +1,6 @@
 {
   "name": "ecomfycalls-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "EcomfyCalls desktop client for Windows",
   "author": "EcomfyCalls",
@@ -41,8 +41,10 @@
     },
     "appx": {
       "applicationId": "EcomfyCalls",
-      "displayName": "EcomfyCalls",
-      "publisherDisplayName": "EcomfyCalls",
+      "identityName": "AntonyMachuca.LlamdasEcomfy",
+      "publisher": "CN=71E5BFB8-78B5-4E22-A358-F2D9C42E9C93",
+      "displayName": "LlamdasEcomfy",
+      "publisherDisplayName": "Antony Machuca",
       "backgroundColor": "#173785"
     }
   }
