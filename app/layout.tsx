@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PwaRuntime } from "@/components/pwa-runtime";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
@@ -14,6 +15,15 @@ export const metadata: Metadata = {
   title: "EcomfyCalls | High-intent insurance calls",
   description:
     "Buy live, qualified insurance calls from customers ready to speak with an agent.",
+  applicationName: "EcomfyCalls",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "EcomfyCalls",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 const geistSans = Geist({
@@ -37,6 +47,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <PwaRuntime />
         </ThemeProvider>
       </body>
     </html>

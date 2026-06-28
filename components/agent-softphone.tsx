@@ -149,6 +149,34 @@ export function AgentSoftphone() {
     }
   }, []);
 
+  const showIncomingCallSystemNotification = useCallback(async () => {
+    if (
+      document.visibilityState === "visible" ||
+      !("Notification" in window) ||
+      Notification.permission !== "granted" ||
+      !("serviceWorker" in navigator)
+    ) {
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const worker =
+        navigator.serviceWorker.controller ||
+        registration.active ||
+        registration.waiting;
+
+      worker?.postMessage({
+        type: "INCOMING_CALL",
+        payload: {
+          url: "/dashboard",
+        },
+      });
+    } catch (error) {
+      console.warn("[Softphone] System notification could not be shown.", error);
+    }
+  }, []);
+
   const cleanupSession = useCallback(() => {
     stopRinging();
     setIncomingCall(null);
@@ -266,7 +294,6 @@ export function AgentSoftphone() {
       }
 
       const socket = new JsSIP.WebSocketInterface(config.wssUrl);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ua = new JsSIP.UA({
         sockets: [socket],
         uri: `sip:${config.extension}@${config.sipDomain}`,
@@ -278,6 +305,7 @@ export function AgentSoftphone() {
             { urls: "stun:stun1.l.google.com:19302" },
           ],
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any) as UserAgent;
 
       uaRef.current = ua;
@@ -299,6 +327,7 @@ export function AgentSoftphone() {
 
         console.info("[Softphone] Incoming SIP session received.");
         setIncomingCall(session);
+        void showIncomingCallSystemNotification();
 
         session.on("peerconnection", () => {
           const peerConnection = session.connection;
@@ -413,7 +442,12 @@ export function AgentSoftphone() {
       uaRef.current?.stop();
       uaRef.current = null;
     };
-  }, [attachRemoteAudio, cleanupSession, stopAudioDiagnostics]);
+  }, [
+    attachRemoteAudio,
+    cleanupSession,
+    showIncomingCallSystemNotification,
+    stopAudioDiagnostics,
+  ]);
 
   useEffect(() => {
     const supabase = createClient();

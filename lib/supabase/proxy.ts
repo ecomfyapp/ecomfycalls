@@ -21,6 +21,8 @@ export async function updateSession(request: NextRequest) {
     "/privacy-policy",
     "/terms-of-service",
     "/user-data-deletion",
+    "/manifest.webmanifest",
+    "/sw.js",
   ];
 
   // If the env vars are not set, skip proxy check. You can remove this
