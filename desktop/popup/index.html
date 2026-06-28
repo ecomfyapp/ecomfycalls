@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Llamada entrante | EcomfyCalls</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="titlebar">
+      <img src="../assets/logo.png" alt="EcomfyCalls" />
+      <button id="close" type="button" aria-label="Cerrar">×</button>
+    </header>
+
+    <main>
+      <div class="pulse-wrap">
+        <div class="pulse"></div>
+        <div class="phone">☎</div>
+      </div>
+      <p id="eyebrow" class="eyebrow">LLAMADA ENTRANTE</p>
+      <h1 id="caller">Cliente interesado</h1>
+      <p id="number" class="number">EcomfyCalls</p>
+      <p id="vertical" class="vertical"></p>
+      <p id="timer" class="timer" hidden>00:00</p>
+
+      <div id="incoming-actions" class="actions">
+        <button id="decline" class="danger" type="button">Rechazar</button>
+        <button id="answer" class="success" type="button">Contestar</button>
+      </div>
+      <div id="active-actions" class="actions single" hidden>
+        <button id="hangup" class="danger" type="button">Colgar</button>
+      </div>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

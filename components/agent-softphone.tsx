@@ -73,6 +73,8 @@ export function AgentSoftphone() {
   const ringIntervalRef = useRef<number | null>(null);
   const audioStatsIntervalRef = useRef<number | null>(null);
   const attachedAudioTrackIdsRef = useRef("");
+  const incomingCallRef = useRef<SipSession | null>(null);
+  const activeCallRef = useRef<SipSession | null>(null);
 
   const getAudioContext = useCallback(() => {
     const audioWindow = window as Window &
@@ -151,6 +153,7 @@ export function AgentSoftphone() {
 
   const showIncomingCallSystemNotification = useCallback(async () => {
     if (
+      window.ecomfyDesktop?.isDesktop ||
       document.visibilityState === "visible" ||
       window.localStorage.getItem("ecomfy-push-subscribed") === "true" ||
       !("Notification" in window) ||
@@ -180,6 +183,8 @@ export function AgentSoftphone() {
 
   const cleanupSession = useCallback(() => {
     stopRinging();
+    incomingCallRef.current = null;
+    activeCallRef.current = null;
     setIncomingCall(null);
     setActiveCall(null);
     setCallData(null);
@@ -188,6 +193,7 @@ export function AgentSoftphone() {
     setRemoteAudioStatus("waiting");
     attachedAudioTrackIdsRef.current = "";
     stopAudioDiagnostics();
+    window.ecomfyDesktop?.callEnded();
   }, [stopAudioDiagnostics, stopRinging]);
 
   const attachRemoteAudio = useCallback((stream: MediaStream) => {
@@ -327,6 +333,7 @@ export function AgentSoftphone() {
         }
 
         console.info("[Softphone] Incoming SIP session received.");
+        incomingCallRef.current = session;
         setIncomingCall(session);
         void showIncomingCallSystemNotification();
 
@@ -466,22 +473,38 @@ export function AgentSoftphone() {
     };
   }, []);
 
-  function answerCall() {
-    if (!incomingCall) {
+  useEffect(() => {
+    if (!incomingCall || !window.ecomfyDesktop) return;
+
+    window.ecomfyDesktop.showIncomingCall({
+      callId: callData?.call_id,
+      callerName: callData?.caller_name,
+      callerNumber: callData?.caller_number,
+      vertical: callData?.vertical,
+    });
+  }, [callData, incomingCall]);
+
+  const answerCall = useCallback(() => {
+    const session = incomingCallRef.current;
+
+    if (!session) {
       return;
     }
 
     stopRinging();
     console.info("[Softphone] Answering incoming SIP call.");
-    incomingCall.answer({
+    session.answer({
       mediaConstraints: {
         audio: true,
         video: false,
       },
     });
-    setActiveCall(incomingCall);
+    activeCallRef.current = session;
+    incomingCallRef.current = null;
+    setActiveCall(session);
     setIncomingCall(null);
     setCallStartedAt(Date.now());
+    window.ecomfyDesktop?.callAnswered();
 
     // The track event fires before the agent clicks Answer (JsSIP sets remote description
     // from the INVITE before answer() is called), so the initial .play() call has no user
@@ -509,15 +532,29 @@ export function AgentSoftphone() {
     } else {
       setRemoteAudioStatus("waiting");
     }
-  }
+  }, [stopRinging]);
 
-  function hangupCall() {
+  const hangupCall = useCallback(() => {
     stopRinging();
     console.info("[Softphone] Ending SIP call.");
-    activeCall?.terminate();
-    incomingCall?.terminate();
+    activeCallRef.current?.terminate();
+    incomingCallRef.current?.terminate();
     cleanupSession();
-  }
+  }, [cleanupSession, stopRinging]);
+
+  useEffect(() => {
+    const desktop = window.ecomfyDesktop;
+    if (!desktop) return;
+
+    return desktop.onCallAction((action) => {
+      if (action === "answer") {
+        answerCall();
+        return;
+      }
+
+      hangupCall();
+    });
+  }, [answerCall, hangupCall]);
 
   const caller = callData?.caller_name || callData?.caller_number || "Incoming caller";
   const callDuration = new Date(elapsedSeconds * 1000)

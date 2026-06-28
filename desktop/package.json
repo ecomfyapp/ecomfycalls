@@ -1,0 +1,49 @@
+{
+  "name": "ecomfycalls-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EcomfyCalls desktop client for Windows",
+  "author": "EcomfyCalls",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "electron .",
+    "dist:windows": "electron-builder --win nsis",
+    "dist:store": "electron-builder --win appx"
+  },
+  "devDependencies": {
+    "electron": "^42.5.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.ecomfycalls.desktop",
+    "productName": "EcomfyCalls",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "popup/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "appx": {
+      "applicationId": "EcomfyCalls",
+      "displayName": "EcomfyCalls",
+      "publisherDisplayName": "EcomfyCalls",
+      "backgroundColor": "#173785"
+    }
+  }
+}

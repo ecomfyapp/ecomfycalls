@@ -79,7 +79,9 @@ export function PwaRuntime() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
+    if (window.ecomfyDesktop?.isDesktop || !("serviceWorker" in navigator)) {
+      return;
+    }
 
     let registration: ServiceWorkerRegistration | null = null;
 
