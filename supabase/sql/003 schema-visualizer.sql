@@ -15,6 +15,7 @@ CREATE TABLE public.user_profiles (
   ppc_status boolean NOT NULL DEFAULT false,
   lead_status boolean NOT NULL DEFAULT false,
   sip_password text NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'::text),
+  release_channel text NOT NULL DEFAULT 'production'::text CHECK (release_channel = ANY (ARRAY['internal'::text, 'beta'::text, 'production'::text])),
   CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT user_profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );

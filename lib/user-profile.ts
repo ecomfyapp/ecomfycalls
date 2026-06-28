@@ -11,6 +11,7 @@ export type UserProfile = {
   lead_status: boolean;
   role: string;
   status: string;
+  release_channel: "internal" | "beta" | "production";
   created_at: string;
   updated_at: string;
 };
@@ -48,7 +49,7 @@ export async function getCurrentUserProfile() {
   const { data: profile, error } = await supabase
     .from("user_profiles")
     .select(
-      "id,email,full_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
+      "id,email,full_name,buyer_id,balance,ppc_status,lead_status,role,status,release_channel,created_at,updated_at",
     )
     .eq("id", user.id)
     .maybeSingle<UserProfile>();
@@ -101,7 +102,7 @@ export async function getCurrentUserProfile() {
     .from("user_profiles")
     .insert(newProfileData)
     .select(
-      "id,email,full_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
+      "id,email,full_name,buyer_id,balance,ppc_status,lead_status,role,status,release_channel,created_at,updated_at",
     )
     .single<UserProfile>();
 

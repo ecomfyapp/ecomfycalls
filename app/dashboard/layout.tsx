@@ -55,15 +55,9 @@ export default async function DashboardLayout({
             <SidebarNav />
           </Suspense>
 
-          <div className="mt-8 hidden rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-4 lg:block">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[#173785]">
-              <Clock3 className="h-4 w-4" />
-              Approval required
-            </div>
-            <p className="mt-2 text-sm leading-6 text-[#647084]">
-              New accounts need approval before accessing live call campaigns.
-            </p>
-          </div>
+          <Suspense fallback={null}>
+            <SidebarApprovalNotice />
+          </Suspense>
 
           <div className="mt-auto hidden lg:block">
             <Suspense fallback={<SidebarAccountSkeleton />}>
@@ -92,9 +86,13 @@ async function SidebarAccount() {
 
 async function SidebarNav() {
   const { profile } = await getCurrentUserProfile();
-  const visibleItems = navItems.filter(
-    (item) => !item.agentOnly || profile?.role === "agent",
-  );
+  const usesBetaAgentSidebar =
+    profile?.role === "agent" && profile.release_channel !== "production";
+  const visibleItems = usesBetaAgentSidebar
+    ? navItems.filter((item) => ["Dashboard", "Calls"].includes(item.label))
+    : navItems.filter(
+        (item) => !item.agentOnly || profile?.role === "agent",
+      );
 
   return (
     <nav className="mt-8 hidden space-y-1 lg:block">
@@ -124,6 +122,28 @@ async function AgentSoftphoneRuntime() {
   }
 
   return <AgentSoftphone />;
+}
+
+async function SidebarApprovalNotice() {
+  const { profile } = await getCurrentUserProfile();
+  const usesBetaAgentSidebar =
+    profile?.role === "agent" && profile.release_channel !== "production";
+
+  if (usesBetaAgentSidebar) {
+    return null;
+  }
+
+  return (
+    <div className="mt-8 hidden rounded-[8px] border border-[#d8e2f0] bg-[#f8fbff] p-4 lg:block">
+      <div className="flex items-center gap-2 text-sm font-semibold text-[#173785]">
+        <Clock3 className="h-4 w-4" />
+        Approval required
+      </div>
+      <p className="mt-2 text-sm leading-6 text-[#647084]">
+        New accounts need approval before accessing live call campaigns.
+      </p>
+    </div>
+  );
 }
 
 function SidebarAccountSkeleton() {

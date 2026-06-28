@@ -6,6 +6,7 @@ import {
   CircleDollarSign,
   ClipboardCheck,
   PhoneCall,
+  PhoneOff,
   ShieldCheck,
   TrendingUp,
   Users,
@@ -36,6 +37,48 @@ const agentSteps = [
     icon: PhoneCall,
   },
 ];
+
+const betaAgentSteps = [
+  {
+    title: "Activa los accesos",
+    text: "Habilita los permisos de micrófono, sonido y notificaciones para recibir y atender cada llamada sin interrupciones.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Enfócate en los beneficios del cliente",
+    text: "Explica el valor de la oferta y evita perder tiempo solicitando nombre, teléfono y otros datos. Recibirás una notificación con esa información.",
+    icon: BadgeCheck,
+  },
+  {
+    title: "Mantén saldo en tu cuenta",
+    text: "Conserva al menos $300 de saldo disponible para continuar recibiendo llamadas entrantes.",
+    icon: CircleDollarSign,
+  },
+  {
+    title: "Desactiva las llamadas cuando no estés disponible",
+    text: "Desactiva tu estado de Calls cuando no quieras recibir llamadas o cuando estés en una presentación.",
+    icon: PhoneOff,
+  },
+];
+
+function getShortName(fullName: string | null) {
+  const nameParts = fullName?.trim().split(/\s+/).filter(Boolean) ?? [];
+  return nameParts.slice(0, 2).join(" ") || "Agente";
+}
+
+function getSpanishGreeting() {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: "America/New_York",
+    }).format(new Date()),
+  );
+
+  if (hour < 12) return "Buenos días";
+  if (hour < 19) return "Buenas tardes";
+  return "Buenas noches";
+}
 
 const adminMetrics = [
   { label: "Pending approvals", value: "0", icon: Users },
@@ -76,8 +119,19 @@ function AgentDashboard({
   profile: UserProfile;
   error: string | null;
 }) {
+  const usesBetaAgentDashboard = profile.release_channel !== "production";
+  const visibleAgentSteps = usesBetaAgentDashboard
+    ? betaAgentSteps
+    : agentSteps;
+
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div
+      className={`mx-auto w-full ${
+        usesBetaAgentDashboard
+          ? "h-full max-w-[1400px] overflow-y-auto pb-6 pr-1"
+          : "max-w-6xl"
+      }`}
+    >
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#bfe8d8] bg-[#effdf7] px-3 py-1 text-sm font-medium text-[#047857]">
@@ -85,11 +139,14 @@ function AgentDashboard({
             Agent account active
           </div>
           <h1 className="mt-5 text-3xl font-semibold tracking-normal md:text-4xl">
-            Buy high-intent insurance calls
+            {usesBetaAgentDashboard
+              ? `${getSpanishGreeting()}, ${getShortName(profile.full_name)}`
+              : "Buy high-intent insurance calls"}
           </h1>
           <p className="mt-3 max-w-2xl leading-7 text-[#647084]">
-            Your agent workspace is ready. The next step is configuring where,
-            when and what type of calls you want EcomfyCalls to deliver.
+            {usesBetaAgentDashboard
+              ? "Formas parte de un grupo exclusivo que disfruta el beneficio de recibir llamadas de clientes interesados. EcomfyCalls te conecta con personas listas para conversar sobre su seguro."
+              : "Your agent workspace is ready. The next step is configuring where, when and what type of calls you want EcomfyCalls to deliver."}
           </p>
         </section>
 
@@ -113,40 +170,54 @@ function AgentDashboard({
         </aside>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {agentMetrics.map((metric) => {
-          const Icon = metric.icon;
+      {!usesBetaAgentDashboard ? (
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {agentMetrics.map((metric) => {
+            const Icon = metric.icon;
 
-          return (
-            <div
-              key={metric.label}
-              className="rounded-[8px] border border-[#d8e2f0] bg-white p-5 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[#647084]">
-                  {metric.label}
-                </p>
-                <Icon className="h-5 w-5 text-[#173785]" />
+            return (
+              <div
+                key={metric.label}
+                className="rounded-[8px] border border-[#d8e2f0] bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-[#647084]">
+                    {metric.label}
+                  </p>
+                  <Icon className="h-5 w-5 text-[#173785]" />
+                </div>
+                <p className="mt-4 text-3xl font-semibold">{metric.value}</p>
               </div>
-              <p className="mt-4 text-3xl font-semibold">{metric.value}</p>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : null}
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
+      <div
+        className={`mt-6 grid gap-5 ${
+          usesBetaAgentDashboard
+            ? "grid-cols-1"
+            : "lg:grid-cols-[1fr_360px]"
+        }`}
+      >
         <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold">Launch checklist</h2>
+              <h2 className="text-xl font-semibold">
+                {usesBetaAgentDashboard
+                  ? "Checklist de llamadas"
+                  : "Launch checklist"}
+              </h2>
               <p className="mt-1 text-sm text-[#647084]">
-                These are the pieces we need before calls can start flowing.
+                {usesBetaAgentDashboard
+                  ? "Más llamadas, más cierres. Sigue estos pasos para aprovechar mejor las llamadas entrantes."
+                  : "These are the pieces we need before calls can start flowing."}
               </p>
             </div>
           </div>
 
           <div className="mt-6 space-y-4">
-            {agentSteps.map((step) => {
+            {visibleAgentSteps.map((step) => {
               const Icon = step.icon;
 
               return (
@@ -169,24 +240,28 @@ function AgentDashboard({
           </div>
         </section>
 
-        <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-2 text-[#173785]">
-            <CalendarClock className="h-5 w-5" />
-            <h2 className="text-xl font-semibold text-[#0b1020]">
-              Call schedule
-            </h2>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-[#647084]">
-            No campaign schedule has been configured yet. This panel will show
-            delivery hours, states and daily caps for the agent.
-          </p>
-          <div className="mt-5 rounded-md border border-dashed border-[#b9c8dd] bg-[#f8fbff] p-4 text-sm text-[#647084]">
-            Waiting for campaign setup
-          </div>
-        </section>
+        {!usesBetaAgentDashboard ? (
+          <section className="rounded-[8px] border border-[#d8e2f0] bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2 text-[#173785]">
+              <CalendarClock className="h-5 w-5" />
+              <h2 className="text-xl font-semibold text-[#0b1020]">
+                Call schedule
+              </h2>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[#647084]">
+              No campaign schedule has been configured yet. This panel will show
+              delivery hours, states and daily caps for the agent.
+            </p>
+            <div className="mt-5 rounded-md border border-dashed border-[#b9c8dd] bg-[#f8fbff] p-4 text-sm text-[#647084]">
+              Waiting for campaign setup
+            </div>
+          </section>
+        ) : null}
       </div>
 
-      <ProfileDebug profile={profile} error={error} />
+      {!usesBetaAgentDashboard ? (
+        <ProfileDebug profile={profile} error={error} />
+      ) : null}
     </div>
   );
 }
