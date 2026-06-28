@@ -75,8 +75,15 @@ self.addEventListener("notificationclick", (event) => {
         });
 
         if (appClient) {
-          appClient.navigate(destination);
-          return appClient.focus();
+          const appUrl = new URL(appClient.url);
+
+          if (appUrl.pathname.startsWith("/dashboard")) {
+            return appClient.focus();
+          }
+
+          return appClient.navigate(destination).then((navigatedClient) => {
+            return navigatedClient?.focus();
+          });
         }
 
         return self.clients.openWindow(destination);
