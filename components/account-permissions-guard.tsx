@@ -131,6 +131,12 @@ export function AccountPermissionsGuard() {
       ...current,
       notifications: normalizeNotificationPermission(permission),
     }));
+
+    if (permission === "granted") {
+      window.dispatchEvent(
+        new Event("ecomfy:notification-permission-granted"),
+      );
+    }
   }
 
   async function requestMicrophone() {

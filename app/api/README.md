@@ -72,3 +72,22 @@ Payload:
 
 The webhook is only a notification. Audio still arrives through SIP/WebRTC when
 the agent browser is registered as the SIP extension.
+
+## Web Push
+
+Authenticated active agents register each browser/device at:
+
+```txt
+POST /api/push/subscriptions
+DELETE /api/push/subscriptions
+```
+
+Required environment variables:
+
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT` (for example `mailto:support@ecomfycalls.com`)
+
+The Asterisk incoming-call webhook sends Web Push to every subscription owned
+by an active agent whose `ppc_status` is enabled. Expired subscriptions are
+removed after a push provider returns HTTP 404 or 410.

@@ -152,6 +152,7 @@ export function AgentSoftphone() {
   const showIncomingCallSystemNotification = useCallback(async () => {
     if (
       document.visibilityState === "visible" ||
+      window.localStorage.getItem("ecomfy-push-subscribed") === "true" ||
       !("Notification" in window) ||
       Notification.permission !== "granted" ||
       !("serviceWorker" in navigator)

@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendIncomingCallPush } from "@/lib/push/send-incoming-call-push";
 import { NextRequest, NextResponse } from "next/server";
 
 type IncomingCallPayload = {
@@ -53,23 +54,31 @@ export async function POST(request: NextRequest) {
   // ring-all natively; this is only for the rich UI popup.
   const supabase = createServiceClient();
   const channel = supabase.channel("calls:ringall");
+  const callData = {
+    call_id: payload.call_id,
+    caller_number: payload.caller_number ?? "",
+    caller_name: payload.caller_name ?? "",
+    vertical: payload.vertical ?? "",
+    metadata: payload.metadata ?? {},
+  };
 
   await channel.send({
     type: "broadcast",
     event: "incoming_call",
-    payload: {
-      call_id: payload.call_id,
-      caller_number: payload.caller_number ?? "",
-      caller_name: payload.caller_name ?? "",
-      vertical: payload.vertical ?? "",
-      metadata: payload.metadata ?? {},
-    },
+    payload: callData,
   });
 
   await supabase.removeChannel(channel);
+  const push = await sendIncomingCallPush({
+    callId: payload.call_id,
+    callerName: callData.caller_name,
+    callerNumber: callData.caller_number,
+    vertical: callData.vertical,
+  });
 
   return NextResponse.json({
     ok: true,
     received: { call_id: payload.call_id },
+    push,
   });
 }
