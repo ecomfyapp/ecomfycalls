@@ -185,12 +185,16 @@ export async function updateUserProfile(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const role = String(formData.get("role") ?? "agent").trim() || "agent";
   const buyerId = role !== "admin" ? optionalNumber(formData.get("buyer_id")) : null;
+  const releaseChannel = String(
+    formData.get("release_channel") ?? "",
+  ).trim();
 
   const updateData: {
     buyer_id?: number | null;
     ppc_status: boolean;
     role: string;
     status: string;
+    release_channel?: "beta" | "production";
   } = {
     ppc_status: formData.get("ppc_status") === "on",
     role,
@@ -202,6 +206,24 @@ export async function updateUserProfile(formData: FormData) {
   }
 
   const supabase = await createClient();
+
+  const { data: currentProfile, error: currentProfileError } = await supabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", id)
+    .single<{ role: string }>();
+
+  if (currentProfileError) {
+    throw new Error(currentProfileError.message);
+  }
+
+  if (
+    currentProfile.role === "agent" &&
+    role === "agent" &&
+    (releaseChannel === "beta" || releaseChannel === "production")
+  ) {
+    updateData.release_channel = releaseChannel;
+  }
 
   const { error } = await supabase
     .from("user_profiles")

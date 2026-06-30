@@ -14,6 +14,11 @@ const roleStyles: Record<string, string> = {
   admin: "bg-[#f0efff] text-[#4f46e5] border-[#c8c4ff]",
 };
 
+const channelStyles: Record<string, string> = {
+  beta: "bg-[#fff7e6] text-[#b45309] border-[#ffd08a]",
+  production: "bg-[#e8fff5] text-[#047857] border-[#9fe8cd]",
+};
+
 const roleIcons = {
   agent: UserRound,
   admin: Shield,
@@ -24,7 +29,7 @@ type ProfileSelectProps = {
   defaultValue: string;
   form: string;
   options: string[];
-  variant: "role" | "status";
+  variant: "role" | "status" | "channel";
 };
 
 export function ProfileSelect({
@@ -37,7 +42,12 @@ export function ProfileSelect({
   const [value, setValue] = useState(defaultValue);
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const styles = variant === "status" ? statusStyles : roleStyles;
+  const styles =
+    variant === "status"
+      ? statusStyles
+      : variant === "channel"
+        ? channelStyles
+        : roleStyles;
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -95,7 +105,7 @@ function DropdownOption({
   option: string;
   selected: boolean;
   styles: string;
-  variant: "role" | "status";
+  variant: "role" | "status" | "channel";
   onSelect: () => void;
 }) {
   const Icon =

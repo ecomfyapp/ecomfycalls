@@ -142,15 +142,16 @@ async function UsersContent({
             <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm">
               <colgroup>
                 <col style={{ width: "6%" }} />
-                <col style={{ width: "17%" }} />
                 <col style={{ width: "16%" }} />
-                <col style={{ width: "9%" }} />
-                <col style={{ width: "9%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "8%" }} />
                 <col style={{ width: "9%" }} />
                 <col style={{ width: "8%" }} />
+                <col style={{ width: "7%" }} />
                 <col style={{ width: "5%" }} />
                 <col style={{ width: "6%" }} />
-                <col style={{ width: "15%" }} />
+                <col style={{ width: "13%" }} />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-[#f8fbff] text-xs uppercase text-[#647084]">
                 <tr>
@@ -160,6 +161,7 @@ async function UsersContent({
                     "Name",
                     "Role",
                     "Status",
+                    "Channel",
                     "Buyer ID",
                     "Balance",
                     "PPC",
@@ -325,6 +327,21 @@ function UserProfileRow({ profile }: { profile: AdminUserProfile }) {
           options={["pending", "active", "banned"]}
           variant="status"
         />
+      </td>
+      <td className="border-b border-[#eef2f7] px-3 py-2">
+        {profile.role === "agent" ? (
+          <ProfileSelect
+            name="release_channel"
+            defaultValue={profile.release_channel}
+            form={`user-${profile.id}`}
+            options={["beta", "production"]}
+            variant="channel"
+          />
+        ) : (
+          <span className="block truncate rounded-md border border-[#d8e2f0] bg-[#f1f5fb] px-2 py-1.5 text-sm capitalize text-[#94a3b8]">
+            {profile.release_channel}
+          </span>
+        )}
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
         {profile.role === "admin" ? (
