@@ -36,9 +36,6 @@ type NewRtcSessionEvent = {
 type UserAgent = {
   start: () => void;
   stop: () => void;
-  register: () => void;
-  isConnected: () => boolean;
-  isRegistered: () => boolean;
   on: (event: string, handler: (data: NewRtcSessionEvent) => void) => void;
 };
 
@@ -309,8 +306,6 @@ export function AgentSoftphone() {
         uri: `sip:${config.extension}@${config.sipDomain}`,
         password: config.password,
         session_timers: false,
-        connection_recovery_min_interval: 2,
-        connection_recovery_max_interval: 15,
         pcConfig: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
@@ -444,119 +439,14 @@ export function AgentSoftphone() {
       });
 
       ua.start();
-
-      let disconnectedSince: number | null = null;
-      let lastRegisterAttempt = Date.now();
-      let lastRestartAttempt = 0;
-      let restartTimeout: number | null = null;
-
-      const hasCallInProgress = () =>
-        incomingCallRef.current !== null || activeCallRef.current !== null;
-
-      const checkRegistrationHealth = () => {
-        if (
-          !isMounted ||
-          uaRef.current !== ua ||
-          !navigator.onLine ||
-          hasCallInProgress()
-        ) {
-          return;
-        }
-
-        const now = Date.now();
-
-        if (ua.isConnected()) {
-          disconnectedSince = null;
-
-          if (!ua.isRegistered() && now - lastRegisterAttempt >= 15000) {
-            lastRegisterAttempt = now;
-            console.warn(
-              "[Softphone] SIP registration was lost; registering again.",
-            );
-            ua.register();
-          }
-
-          return;
-        }
-
-        disconnectedSince ??= now;
-
-        if (
-          now - disconnectedSince < 45000 ||
-          now - lastRestartAttempt < 60000 ||
-          restartTimeout !== null
-        ) {
-          return;
-        }
-
-        lastRestartAttempt = now;
-        console.warn(
-          "[Softphone] Connection recovery timed out; restarting the SIP client.",
-        );
-        ua.stop();
-        restartTimeout = window.setTimeout(() => {
-          restartTimeout = null;
-
-          if (
-            isMounted &&
-            uaRef.current === ua &&
-            navigator.onLine &&
-            !hasCallInProgress()
-          ) {
-            disconnectedSince = Date.now();
-            ua.start();
-          }
-        }, 2500);
-      };
-
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === "visible") {
-          checkRegistrationHealth();
-        }
-      };
-
-      const healthInterval = window.setInterval(
-        checkRegistrationHealth,
-        15000,
-      );
-      window.addEventListener("online", checkRegistrationHealth);
-      window.addEventListener("focus", checkRegistrationHealth);
-      window.addEventListener("pageshow", checkRegistrationHealth);
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-
-      return () => {
-        window.clearInterval(healthInterval);
-        if (restartTimeout !== null) {
-          window.clearTimeout(restartTimeout);
-        }
-        window.removeEventListener("online", checkRegistrationHealth);
-        window.removeEventListener("focus", checkRegistrationHealth);
-        window.removeEventListener("pageshow", checkRegistrationHealth);
-        document.removeEventListener(
-          "visibilitychange",
-          handleVisibilityChange,
-        );
-      };
     }
 
-    let stopHealthSupervisor: (() => void) | undefined;
-
-    startSoftphone()
-      .then((stopSupervisor) => {
-        if (!isMounted) {
-          stopSupervisor?.();
-          return;
-        }
-
-        stopHealthSupervisor = stopSupervisor;
-      })
-      .catch((error: unknown) => {
-        console.error("Unable to start the WebRTC softphone.", error);
-      });
+    startSoftphone().catch((error: unknown) => {
+      console.error("Unable to start the WebRTC softphone.", error);
+    });
 
     return () => {
       isMounted = false;
-      stopHealthSupervisor?.();
       uaRef.current?.stop();
       uaRef.current = null;
     };
