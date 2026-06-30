@@ -86,6 +86,11 @@ async function SidebarAccount() {
 
 async function SidebarNav() {
   const { profile } = await getCurrentUserProfile();
+
+  if (profile?.status === "pending") {
+    return null;
+  }
+
   const usesBetaAgentSidebar =
     profile?.role === "agent" && profile.release_channel !== "production";
   const visibleItems = usesBetaAgentSidebar
@@ -129,7 +134,7 @@ async function SidebarApprovalNotice() {
   const usesBetaAgentSidebar =
     profile?.role === "agent" && profile.release_channel !== "production";
 
-  if (usesBetaAgentSidebar) {
+  if (profile?.status === "pending" || usesBetaAgentSidebar) {
     return null;
   }
 

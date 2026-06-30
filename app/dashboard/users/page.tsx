@@ -29,6 +29,10 @@ type PendingProfile = {
   account_status: string | null;
 };
 
+type AdminUserProfile = UserProfile & {
+  sip_password: string;
+};
+
 function normalizeEmailQuery(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value ?? "").trim().toLowerCase();
 }
@@ -64,10 +68,10 @@ async function UsersContent({
       supabase
         .from("user_profiles")
         .select(
-          "id,email,full_name,buyer_id,balance,ppc_status,lead_status,role,status,created_at,updated_at",
+          "id,email,full_name,buyer_id,balance,ppc_status,lead_status,role,status,release_channel,sip_password,created_at,updated_at",
         )
         .order("created_at", { ascending: false })
-        .returns<UserProfile[]>(),
+        .returns<AdminUserProfile[]>(),
       supabase
         .from("pending_profiles")
         .select(
@@ -151,7 +155,7 @@ async function UsersContent({
               <thead className="sticky top-0 z-10 bg-[#f8fbff] text-xs uppercase text-[#647084]">
                 <tr>
                   {[
-                    "User ID",
+                    "SIP Password",
                     "Email",
                     "Name",
                     "Role",
@@ -283,14 +287,14 @@ function TableInput({
   );
 }
 
-function UserProfileRow({ profile }: { profile: UserProfile }) {
+function UserProfileRow({ profile }: { profile: AdminUserProfile }) {
   return (
     <>
       <td className="border-b border-[#eef2f7] px-3 py-2">
         <form action={updateUserProfile} id={`user-${profile.id}`}>
           <input type="hidden" name="id" value={profile.id} />
         </form>
-        <CopyIdButton value={profile.id} />
+        <CopyIdButton value={profile.sip_password} label="SIP password" />
       </td>
       <td className="border-b border-[#eef2f7] px-3 py-2">
         <span className="block truncate text-[#0b1020]">
