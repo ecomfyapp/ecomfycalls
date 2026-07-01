@@ -15,6 +15,7 @@ type SoftphoneConfig =
       sipDomain: string;
       extension: string;
       password: string;
+      iceServers: RTCIceServer[];
     };
 
 type JsSIPModule = typeof import("jssip");
@@ -307,10 +308,7 @@ export function AgentSoftphone() {
         password: config.password,
         session_timers: false,
         pcConfig: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-          ],
+          iceServers: config.iceServers,
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any) as UserAgent;
@@ -348,6 +346,24 @@ export function AgentSoftphone() {
           console.info("[Softphone] Peer connection created.", {
             connectionState: peerConnection.connectionState,
             iceConnectionState: peerConnection.iceConnectionState,
+          });
+
+          peerConnection.addEventListener("icecandidate", (event) => {
+            if (!event.candidate) {
+              console.info("[Softphone] ICE candidate gathering completed.");
+              return;
+            }
+
+            console.info("[Softphone] ICE candidate gathered.", {
+              type: event.candidate.type,
+              protocol: event.candidate.protocol,
+            });
+          });
+
+          peerConnection.addEventListener("iceconnectionstatechange", () => {
+            console.info("[Softphone] ICE connection state changed.", {
+              state: peerConnection.iceConnectionState,
+            });
           });
 
           const logInboundAudioStats = async () => {

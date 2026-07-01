@@ -43,6 +43,10 @@ This route is only available to active agents. It uses:
 
 - `ASTERISK_WSS_URL`
 - `ASTERISK_SIP_DOMAIN`
+- `ASTERISK_STUN_URL`
+- `ASTERISK_TURN_URL`
+- `ASTERISK_TURN_USERNAME`
+- `ASTERISK_TURN_CREDENTIAL`
 - `user_profiles.buyer_id` as the agent SIP extension
 - `user_profiles.sip_password` as the agent-specific SIP password
 

@@ -18,7 +18,7 @@ export async function GET() {
 
   const sipPassword = sipCredentials?.sip_password || undefined;
 
-  const config = {
+  const connectionConfig = {
     wssUrl: process.env.ASTERISK_WSS_URL,
     sipDomain: process.env.ASTERISK_SIP_DOMAIN,
     extension:
@@ -26,9 +26,13 @@ export async function GET() {
         ? undefined
         : String(auth.profile.buyer_id),
     password: sipPassword,
+    stunUrl: process.env.ASTERISK_STUN_URL,
+    turnUrl: process.env.ASTERISK_TURN_URL,
+    turnUsername: process.env.ASTERISK_TURN_USERNAME,
+    turnCredential: process.env.ASTERISK_TURN_CREDENTIAL,
   };
 
-  const missing = Object.entries(config)
+  const missing = Object.entries(connectionConfig)
     .filter(([, value]) => !value)
     .map(([key]) => key);
 
@@ -38,12 +42,31 @@ export async function GET() {
         configured: false,
         missing,
       },
-      { status: 200 },
+      {
+        status: 200,
+        headers: { "Cache-Control": "private, no-store" },
+      },
     );
   }
 
-  return NextResponse.json({
-    configured: true,
-    ...config,
-  });
+  return NextResponse.json(
+    {
+      configured: true,
+      wssUrl: connectionConfig.wssUrl,
+      sipDomain: connectionConfig.sipDomain,
+      extension: connectionConfig.extension,
+      password: connectionConfig.password,
+      iceServers: [
+        { urls: connectionConfig.stunUrl },
+        {
+          urls: connectionConfig.turnUrl,
+          username: connectionConfig.turnUsername,
+          credential: connectionConfig.turnCredential,
+        },
+      ],
+    },
+    {
+      headers: { "Cache-Control": "private, no-store" },
+    },
+  );
 }
